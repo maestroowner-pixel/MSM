@@ -158,7 +158,19 @@ app mirrors. Bundle id `com.kukalab.msm`.
   keeps its edit but takes the newer answer and comes back 1 ms newer so it goes up; `pushOrderNow` folds before writing
   the order the callable needs. Mail: same SMTP secrets as the digest. `npm run check:quotelink`; tested end to end in the
   emulators (JDK 21: `JAVA_HOME=/opt/homebrew/opt/openjdk@21`, dummy `functions/.secret.local` — delete after).
-  Not yet: "return for rework" and the supplier confirming the PO on the same link.
+  **Send back and the order to confirm** (21 Nov 2026, same flag): `quoteLinkSend` with `note` (3–500) sends an answered quote back
+  for revision — always a NEW link (the token is not kept, so the mail needs a fresh one), `link.returned` {at, note}; the page puts
+  the note above their earlier answer; waiting while `answeredAt` ≤ `returned.at` (`rfq.awaitingRevision`). After the award
+  `closedWhy` closes every other link (`awarded`), the winner's reads `chosen` until the order is SENT, then opens in mode `order`
+  (sent/partial; `received`/`cancelled` close): `orderView` = the lines priced on their quote at their prices, total as
+  `quoteTotal`, lines left out counted; POST `{confirm: {ok, ref, eta, note}}` (`readConfirm` — not ok needs a reason) →
+  `Quote.confirm` {at, ok, by, ref, eta, note} in a transaction; a quotation on an order link is refused. App: RfqPanel **Send back**
+  (before the award, answered quotes) and **Send the order to confirm** / +7 days on the winner once sent (prop `officer`);
+  `rfq.linkClosed` is a COPY of `closedWhy` (check:quotelink compares 72 cases). Sync: `foldQuotes` keeps the later `confirm.at`
+  and, for the same link, the later `expires`. Board `po:noconf:*` amber to officers when they cannot confirm. Mails: quote /
+  revise / order. `copyOrder` no longer copies quotes, award or quoteBy (the copy read as awarded, and the per-vessel link record
+  is keyed by quote id alone, so a copied id dropped the original's link). Needs `deploy functions` (quoteLinkSend, quoteLinkExtend,
+  supplierQuote) and the web (quote.html/js) — the old page does not know mode `order`.
 - **Oil analysis** (27 Oct 2026 — flag `oil`, on from 2.69): `screens/OilSc` (route `OilAnalysis`, also linked from
   Maintenance), `OilPointSc`, `OilSampleSc`; `types/oil.ts`, pure `services/oil.ts`, reports `services/oilReport.ts`.
   A point sits on a PMS machine (running hours), with oil, lab, interval (days and/or hours, whichever first),

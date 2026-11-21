@@ -68,6 +68,11 @@ export function copyOrder(o: PurchaseOrder, existing: PurchaseOrder[]): Purchase
     receivedBy: undefined,
     deliveries: undefined,
     approval: undefined,
+    // A new request: its own quotations. Copied quotes kept the old ids (a link for one stopped the original's)
+    // and prices keyed by the old line ids, and a copied award made the draft read as awarded.
+    quotes: undefined,
+    quoteBy: undefined,
+    award: undefined,
     lines: o.lines.filter((l) => l.qty > 0).map((l) => ({ ...l, id: uid('ol'), qtyReceived: undefined, cut: undefined })),
     at: Date.now(),
     updatedAt: Date.now(),

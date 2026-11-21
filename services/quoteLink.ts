@@ -18,9 +18,13 @@ function callable<Q, A>(name: string) {
   return httpsCallable<Q, A>(getFunctions(app, REGION), name);
 }
 
-export async function sendQuoteLink(o: PurchaseOrder, quoteId: string, email: string): Promise<{ url: string; mailed: boolean; order: PurchaseOrder }> {
+/**
+ * A new link for the quote: to quote, to confirm the order once it is sent to the
+ * winner, or — with `note` — their answer sent back for revision (the old link stops).
+ */
+export async function sendQuoteLink(o: PurchaseOrder, quoteId: string, email: string, note?: string): Promise<{ url: string; mailed: boolean; order: PurchaseOrder }> {
   const up = await fb.pushOrderNow(o);
-  const r = await callable<{ orderId: string; quoteId: string; email: string }, { url: string; link: QuoteLink; mailed: boolean }>('quoteLinkSend')({ orderId: o.id, quoteId, email });
+  const r = await callable<{ orderId: string; quoteId: string; email: string; note?: string }, { url: string; link: QuoteLink; mailed: boolean }>('quoteLinkSend')({ orderId: o.id, quoteId, email, ...(note != null ? { note } : {}) });
   return { url: r.data.url, mailed: r.data.mailed, order: withLink(up, quoteId, r.data.link) };
 }
 

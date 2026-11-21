@@ -443,6 +443,14 @@ export function buildBoard(x: BoardInput): Board {
     }
   }
 
+  // ---- The supplier cannot confirm an order sent to them (quote link, functions/quoteLink.js) ----
+  if (x.on('orders') && x.on('quoteLink')) {
+    for (const o of (x.purchaseOrders ?? []).filter((o) => !o.deleted && (o.status === 'sent' || o.status === 'partial') && o.award)) {
+      const q = o.quotes?.find((y) => y.id === o.award!.quoteId);
+      if (q?.confirm && !q.confirm.ok) n.push({ key: `po:noconf:${o.id}`, level: 'amber', who: 'officer', icon: 'truck-delivery-outline', route: 'Order', params: { id: o.id }, title: `${t('b.po.noConfirm', { name: q.supplier })} — ${o.no}`, sub: q.confirm.note });
+    }
+  }
+
   // ---- Documents to read ----
   if (x.on('docs') && x.me) {
     const k = toRead(x.docs, x.docAcks, x.me.key, x.me.name).length;

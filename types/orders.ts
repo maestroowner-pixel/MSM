@@ -156,6 +156,23 @@ export interface Quote {
   charges?: QuoteCharge[];
   /** Their own quotation or datasheet, attached on the page. */
   file?: { uri: string; name: string; type: string };
+  /** The winner's answer to the purchase order on the same link, once the order is sent. */
+  confirm?: QuoteConfirm;
+}
+
+/** The supplier confirms the order (or says why they cannot) on the quote page. */
+export interface QuoteConfirm {
+  /** Epoch ms */
+  at: number;
+  ok: boolean;
+  /** As typed on the page (the supplier's own staff). */
+  by?: string;
+  /** Their order / confirmation no. */
+  ref?: string;
+  /** yyyy-mm-dd they will deliver aboard. */
+  eta?: string;
+  /** Required when they cannot confirm. */
+  note?: string;
 }
 
 export interface QuoteLink {
@@ -168,6 +185,11 @@ export interface QuoteLink {
   answeredAt?: number;
   /** Who answered, as typed on the page (the supplier's own staff). */
   answeredBy?: string;
+  /**
+   * The vessel sent the answer back for revision — always with a new link, since
+   * the token itself is not kept. Waiting while `answeredAt` is before `at`.
+   */
+  returned?: { at: number; note: string };
 }
 
 /** Original — the maker's own; OEM — made for the maker, not under its name; Replacement — another make that fits. */

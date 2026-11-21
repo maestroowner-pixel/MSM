@@ -7,7 +7,7 @@ export interface StepAct { t: string; steps: string[]; note?: string; who?: Step
 export interface StepScreen { id: string; title: string; path: string[]; who: StepWho; perVessel?: boolean; intro: string; acts: StepAct[] }
 export interface StepGroup { title: string; screens: StepScreen[] }
 
-/** 103 screens, 544 actions. */
+/** 103 screens, 546 actions. */
 export const MANUAL_STEPS: StepGroup[] = [
  {
   "title": "Getting started",
@@ -4082,6 +4082,17 @@ export const MANUAL_STEPS: StepGroup[] = [
       "perVessel": true
      },
      {
+      "t": "Send a quote back for revision",
+      "steps": [
+       "**Quotations** → the supplier who answered → **Send back**",
+       "**What to look at again** — e.g. line 3, quote the original part",
+       "**Send by e-mail** (or **Link only**)",
+       "Until they answer again the quote reads “Sent back … — waiting for their revision”"
+      ],
+      "note": "A new link goes out; the old one stops. They see their earlier answer and change it.",
+      "perVessel": true
+     },
+     {
       "t": "Award the order",
       "steps": [
        "**Side by side — unit prices** — ★ the lowest per line",
@@ -4090,6 +4101,17 @@ export const MANUAL_STEPS: StepGroup[] = [
        "**Award the order to …**"
       ],
       "note": "Prices, supplier and ref go onto the lines. **Comparison PDF** / **Excel** for the file.",
+      "perVessel": true
+     },
+     {
+      "t": "Have the supplier confirm the order",
+      "steps": [
+       "Send the awarded order (status **Sent**)",
+       "**Quotations** → the awarded supplier → **Send the order to confirm** → **Send by e-mail**",
+       "They see the lines ordered from them at their prices and **Confirm the order** with their order no. and delivery date — or say why they cannot",
+       "The quote shows **✓ Order confirmed** with their no. and date, or **✗ Cannot confirm** with the reason (also on the Board)"
+      ],
+      "note": "Their earlier quote link works for it too: **+7 days** reopens it.",
       "perVessel": true
      },
      {

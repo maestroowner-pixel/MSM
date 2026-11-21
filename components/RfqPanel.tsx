@@ -10,6 +10,9 @@
 //
 // Send link (plan item 48, services/quoteLink.ts): the supplier gets a link by
 // mail and answers on a page of their own — the answer lands in their quote.
+// Send back (21 Nov 2026): their answer goes back for revision with a note, on a
+// new link. Once the order is sent, the winner's link asks them to confirm it;
+// their confirmation (or why not) shows on their quote.
 // ===================================
 
 import React, { useMemo, useState } from 'react';
@@ -29,7 +32,7 @@ import { Supplier } from '../types/suppliers';
 import * as storage from '../services/storage';
 import { todayIso } from '../services/pms';
 import { money } from '../services/finance';
-import { awardOrder, awardProblem, compareQuotes, findSuppliers, linkOpen, quoteTotal } from '../services/rfq';
+import { awaitingRevision, awardOrder, awardProblem, compareQuotes, findSuppliers, linkClosed, linkOpen, quoteTotal } from '../services/rfq';
 import { extendQuoteLink, revokeQuoteLink, sendQuoteLink } from '../services/quoteLink';
 import { comparisonSheet, exportComparison, exportRfq, rfqSheet } from '../services/rfqSheet';
 import { uid } from '../utils/id';
@@ -38,7 +41,7 @@ import { playSuccessSound } from '../utils/sound';
 import { makeStyles } from '../screens/SafetySc';
 import { t, tk, useT } from '../utils/i18n';
 
-export function RfqPanel({ o, editable, by }: { o: PurchaseOrder; editable: boolean; by: string }) {
+export function RfqPanel({ o, editable, officer, by }: { o: PurchaseOrder; editable: boolean; officer: boolean; by: string }) {
   useT();
   const COLORS = useTheme();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
@@ -52,6 +55,9 @@ export function RfqPanel({ o, editable, by }: { o: PurchaseOrder; editable: bool
   // The link needs the server: an enrolled officer's device, online.
   const linkOn = moduleOn('quoteLink') && sync.enrolled && roleAtLeast(sync.role, 'admin');
   const [linkFor, setLinkFor] = useState<string | null>(null);
+  // The form under a quote is for a link, or for sending the answer back with a note.
+  const [back, setBack] = useState(false);
+  const [note, setNote] = useState('');
   const [email, setEmail] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
   // The URL exists in clear only in the server's reply — kept for this visit to copy or share.
@@ -82,18 +88,21 @@ export function RfqPanel({ o, editable, by }: { o: PurchaseOrder; editable: bool
       { text: t('common.cancel'), style: 'cancel' },
       { text: t('common.delete'), style: 'destructive', onPress: () => {
         void save({ quotes: quotes.filter((x) => x.id !== q.id) });
-        if (q.link && linkOpen(q)) void revokeQuoteLink(q.id).catch(() => {});
+        if (q.link && linkOpen(q, Date.now(), o)) void revokeQuoteLink(q.id).catch(() => {});
       } },
     ]);
 
-  const openLinkForm = (q: Quote) => {
-    setLinkFor(linkFor === q.id ? null : q.id);
+  const openLinkForm = (q: Quote, sendBack = false) => {
+    setLinkFor(linkFor === q.id && back === sendBack ? null : q.id);
+    setBack(sendBack);
+    setNote('');
     setEmail(q.link?.to ?? suppliers.find((s) => s.id === q.supplierId)?.email ?? '');
   };
   const sendLink = async (q: Quote, mail: boolean) => {
+    if (back && note.trim().length < 3) return Alert.alert(t('rfq.back.title'), t('rfq.back.needNote'));
     setBusy(q.id);
     try {
-      const r = await sendQuoteLink(o, q.id, mail ? email.trim() : '');
+      const r = await sendQuoteLink(o, q.id, mail ? email.trim() : '', back ? note.trim() : undefined);
       await saveRow(storage.PURCHASE_ORDERS_KEY, r.order);
       setUrl({ ...url, [q.id]: r.url });
       setLinkFor(null);
@@ -170,6 +179,12 @@ export function RfqPanel({ o, editable, by }: { o: PurchaseOrder; editable: bool
       {quotes.map((q) => {
         const st = stateOf(q);
         const won = o.award?.quoteId === q.id;
+        // A link to quote before the award; after it, only the winner's — to confirm the order once sent.
+        const placed = o.status === 'sent' || o.status === 'partial';
+        const mayLink = linkOn && (o.award ? won && placed && officer : editable);
+        const mayBack = linkOn && editable && !o.award && !!q.receivedAt;
+        const shut = q.link ? linkClosed(o, q) : null;
+        const forOrder = !!o.award && won;
         return (
           <View key={q.id} style={[styles.item, { borderLeftColor: won ? COLORS.success : st.color, marginTop: SIZES.xs }]}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: SIZES.sm }}>
@@ -177,13 +192,36 @@ export function RfqPanel({ o, editable, by }: { o: PurchaseOrder; editable: bool
                 <Text style={styles.name}>{`${q.supplier}${won ? `  ✓ ${t('rfq.awarded')}` : c.cheapestId === q.id && c.ranked.length > 1 ? `  ★ ${t('rfq.cheapest')}` : ''}`}</Text>
                 <Text style={[styles.sub, { color: st.color }]}>{st.text}</Text>
                 {q.link ? (
-                  <Text style={[styles.sub, { color: linkOpen(q) ? COLORS.textDark : COLORS.textLight }]}>
+                  <Text style={[styles.sub, { color: !shut ? COLORS.textDark : COLORS.textLight }]}>
                     {[
-                      linkOpen(q) ? t('rfq.link.openTo', { date: uiDateTime(q.link.expires) }) : t('rfq.link.closedOn', { date: uiDateTime(q.link.expires) }),
+                      !shut ? t(forOrder ? 'rfq.link.orderOpenTo' : 'rfq.link.openTo', { date: uiDateTime(q.link.expires) })
+                        : shut === 'expired' ? t('rfq.link.closedOn', { date: uiDateTime(q.link.expires) })
+                        : shut === 'chosen' ? t('rfq.link.afterSend')
+                        : t('rfq.link.closed'),
                       q.link.to ?? '',
                       q.link.answeredAt ? t('rfq.link.answered', { date: uiDateTime(q.link.answeredAt) }) + (q.link.answeredBy ? ` (${q.link.answeredBy})` : '') : '',
                     ].filter(Boolean).join(' · ')}
                   </Text>
+                ) : null}
+                {q.link?.returned ? (
+                  <Text style={[styles.sub, { color: awaitingRevision(q) ? COLORS.warning : COLORS.textLight }]}>
+                    {awaitingRevision(q)
+                      ? t('rfq.back.waiting', { date: uiDateTime(q.link.returned.at), note: q.link.returned.note })
+                      : t('rfq.back.revised', { date: uiDateTime(q.link.answeredAt ?? 0) })}
+                  </Text>
+                ) : null}
+                {q.confirm ? (
+                  <Text style={[styles.sub, { color: q.confirm.ok ? COLORS.success : COLORS.danger, fontWeight: '700' }]}>
+                    {[
+                      q.confirm.ok ? t('rfq.conf.ok', { date: uiDateTime(q.confirm.at) }) : t('rfq.conf.no', { date: uiDateTime(q.confirm.at) }),
+                      q.confirm.by ?? '',
+                      q.confirm.ref ? t('rfq.conf.ref', { ref: q.confirm.ref }) : '',
+                      q.confirm.eta ? t('rfq.conf.eta', { date: uiDate(q.confirm.eta) }) : '',
+                      q.confirm.note ?? '',
+                    ].filter(Boolean).join(' · ')}
+                  </Text>
+                ) : forOrder && placed && linkOn && officer ? (
+                  <Text style={[styles.sub, { color: COLORS.warning }]}>{q.link && !shut ? t('rfq.conf.waiting') : t('rfq.conf.ask')}</Text>
                 ) : null}
                 {q.file ? (
                   <TouchableOpacity onPress={() => void Linking.openURL(q.file!.uri)}>
@@ -198,11 +236,14 @@ export function RfqPanel({ o, editable, by }: { o: PurchaseOrder; editable: bool
             <View style={[styles.row, { gap: SIZES.xs, marginBottom: 0 }]}>
               {editable ? <TouchableOpacity style={styles.small} onPress={() => void exportRfq(o, q, vessel).then(done, fail)}><Text style={styles.smallText}>{t('rfq.rfqPdf')}</Text></TouchableOpacity> : null}
               {editable ? <TouchableOpacity style={styles.small} onPress={() => void rfqSheet(o, q, vessel).then(done, fail)}><Text style={styles.smallText}>{t('rfq.rfqExcel')}</Text></TouchableOpacity> : null}
-              {editable && linkOn ? (
-                <TouchableOpacity style={styles.small} disabled={busy === q.id} onPress={() => openLinkForm(q)}><Text style={styles.smallText}>{q.link ? t('rfq.link.new') : t('rfq.link.send')}</Text></TouchableOpacity>
+              {mayLink ? (
+                <TouchableOpacity style={styles.small} disabled={busy === q.id} onPress={() => openLinkForm(q)}><Text style={styles.smallText}>{forOrder ? t('rfq.link.order') : q.link ? t('rfq.link.new') : t('rfq.link.send')}</Text></TouchableOpacity>
               ) : null}
-              {editable && linkOn && q.link ? (
+              {mayLink && q.link && (!forOrder || !shut || shut === 'expired') ? (
                 <TouchableOpacity style={styles.small} disabled={busy === q.id} onPress={() => void extend(q)}><Text style={styles.smallText}>{t('rfq.link.extend')}</Text></TouchableOpacity>
+              ) : null}
+              {mayBack ? (
+                <TouchableOpacity style={styles.small} disabled={busy === q.id} onPress={() => openLinkForm(q, true)}><Text style={styles.smallText}>{t('rfq.back.btn')}</Text></TouchableOpacity>
               ) : null}
               {editable ? <TouchableOpacity style={styles.small} onPress={() => nav.navigate('Quote', { po: o.id, id: q.id })}><Text style={styles.smallText}>{q.receivedAt ? t('rfq.editQuote') : t('rfq.enterQuote')}</Text></TouchableOpacity> : null}
               {editable && q.receivedAt && !q.declined && !won ? (
@@ -212,7 +253,10 @@ export function RfqPanel({ o, editable, by }: { o: PurchaseOrder; editable: bool
             </View>
             {linkFor === q.id ? (
               <View>
-                <Text style={styles.sub}>{t('rfq.link.intro')}</Text>
+                <Text style={styles.sub}>{back ? t('rfq.back.intro') : forOrder ? t('rfq.link.orderIntro') : t('rfq.link.intro')}</Text>
+                {back ? (
+                  <TextInput style={[styles.input, { minHeight: 60 }]} multiline value={note} onChangeText={setNote} maxLength={500} placeholder={t('rfq.back.notePh')} accessibilityLabel={t('rfq.back.note')} />
+                ) : null}
                 <TextInput style={[styles.input, { maxWidth: 360 }]} value={email} onChangeText={setEmail} placeholder={t('rfq.link.emailPh')} accessibilityLabel={t('rfq.link.email')} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} />
                 <View style={[styles.row, { gap: SIZES.xs }]}>
                   <TouchableOpacity style={[styles.btn, { opacity: email.trim() && busy !== q.id ? 1 : 0.5 }]} disabled={!email.trim() || busy === q.id} onPress={() => void sendLink(q, true)}>
@@ -220,7 +264,7 @@ export function RfqPanel({ o, editable, by }: { o: PurchaseOrder; editable: bool
                   </TouchableOpacity>
                   <TouchableOpacity disabled={busy === q.id} onPress={() => void sendLink(q, false)}><Text style={styles.link}>{t('rfq.link.only')}</Text></TouchableOpacity>
                 </View>
-                {q.link && linkOpen(q) ? <Text style={styles.sub}>{t('rfq.link.replaces')}</Text> : null}
+                {q.link && linkOpen(q, Date.now(), o) ? <Text style={styles.sub}>{t('rfq.link.replaces')}</Text> : null}
               </View>
             ) : null}
             {url[q.id] ? (

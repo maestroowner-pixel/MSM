@@ -3,7 +3,8 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 declare const require: any;
 const L = require('../../functions/quoteLink');
-import { compareQuotes, foldOrder, foldQuotes, linkOpen, quoteTotal, withLink } from '../services/rfq';
+import { awaitingRevision, awardOrder, compareQuotes, foldOrder, foldQuotes, linkClosed, linkOpen, quoteTotal, withLink } from '../services/rfq';
+import { copyOrder } from '../services/orders';
 import { PurchaseOrder, Quote } from '../types/orders';
 
 let bad = 0;
@@ -36,7 +37,11 @@ ok(page.vessel === 'DreamBoat' && page.po === 'PO-EN-007-2026' && page.port === 
 // ---- closed ----------------------------------------------------------------------
 ok(L.closedWhy(o, o.quotes![0], { ...link, expires: NOW - 1 }, NOW) === 'expired', 'past its date: expired');
 ok(L.closedWhy(po({ status: 'sent' }), o.quotes![0], link, NOW) === 'ordered', 'the order is sent: closed');
-ok(L.closedWhy(po({ award: { quoteId: 'qa', supplier: 'x', at: '', by: '', total: 0, currency: 'EUR', cheapest: true, compared: 1 } }), o.quotes![0], link, NOW) === 'awarded', 'awarded: closed');
+const aw = (quoteId: string) => ({ quoteId, supplier: 'x', at: '', by: '', total: 0, currency: 'EUR', cheapest: true, compared: 1 });
+ok(L.closedWhy(po({ award: aw('qb') }), o.quotes![0], link, NOW) === 'awarded', 'awarded to another: closed');
+ok(L.closedWhy(po({ award: aw('qa') }), o.quotes![0], link, NOW) === 'chosen', 'awarded to them, not sent yet: closed, the order follows');
+ok(L.closedWhy(po({ award: aw('qa'), status: 'sent' }), o.quotes![0], link, NOW) === null && L.closedWhy(po({ award: aw('qa'), status: 'partial' }), o.quotes![0], link, NOW) === null, 'sent (or partly delivered) to them: open, to confirm');
+ok(L.closedWhy(po({ award: aw('qa'), status: 'received' }), o.quotes![0], link, NOW) === 'received' && L.closedWhy(po({ award: aw('qa'), status: 'cancelled' }), o.quotes![0], link, NOW) === 'cancelled', 'received or cancelled: closed');
 ok(L.closedWhy(o, undefined, link, NOW) === 'removed' && L.closedWhy(po({ deleted: true }), o.quotes![0], link, NOW) === 'removed', 'the quote removed or the order deleted: closed');
 ok(L.closedWhy(po({ status: 'standby' }), o.quotes![0], link, NOW) === null, 'on standby it still takes quotes');
 
@@ -89,6 +94,60 @@ const resent = { ...stale, quotes: [{ ...o.quotes![0], link: { sentAt: NOW + 400
 const both = foldQuotes(resent.quotes, cloud.quotes)[0];
 ok(both.link!.sentAt === NOW + 4000 && both.link!.answeredAt === NOW + 1000 && both.prices.l1 === 9.6, 'a newer link here and an answer there: the later link with the answer');
 ok(foldQuotes([o.quotes![0]], []).length === 1 && foldQuotes([], cloud.quotes).length === 0, 'a quote removed here is not brought back');
+
+// ---- the app's copy of closedWhy --------------------------------------------------------
+let same = 0, cases = 0;
+for (const status of ['draft', 'standby', 'sent', 'partial', 'received', 'cancelled'] as const) {
+  for (const award of [undefined, aw('qa'), aw('qb')]) {
+    for (const expires of [NOW + DAY, NOW - 1]) {
+      for (const deleted of [false, true]) {
+        const oo = po({ status, award, deleted });
+        const q = { ...oo.quotes![0], link: { sentAt: NOW, expires } };
+        cases++;
+        if (linkClosed(oo, q, NOW) === L.closedWhy(oo, q, { ...link, expires }, NOW)) same++;
+      }
+    }
+  }
+}
+ok(same === cases, `rfq.ts linkClosed answers as the server's closedWhy (${same}/${cases})`);
+ok(!linkOpen(o.quotes![0], NOW, po({ award: aw('qb') })) && linkOpen(o.quotes![0], NOW, o), 'with the order: a link of a quote that lost is shown closed, though its date is not past');
+
+// ---- sent back for revision ----------------------------------------------------------------
+const backQ: Quote = { ...answered, link: { ...answered.link!, sentAt: NOW + 3000, returned: { at: NOW + 3000, note: 'Line 1: quote the original' } } };
+const pageBack = L.pageData({ ...o, quotes: [backQ] }, backQ, link, 'DreamBoat', {}, NOW);
+ok(pageBack.returned && pageBack.returned.note === 'Line 1: quote the original' && pageBack.answer && pageBack.answer.lines.l1.price === 48, 'sent back: the note heads the page, their earlier answer is there to change');
+ok(awaitingRevision(backQ), 'the app shows it waiting for their revision');
+const revised: Quote = L.withAnswer(backQ, r.quote, 'Ana Ruiz', NOW + 4000, null);
+ok(!L.pageData({ ...o, quotes: [revised] }, revised, link, 'DreamBoat', {}, NOW).returned && !awaitingRevision(revised) && revised.link!.returned!.note === 'Line 1: quote the original', 'answered again: no longer waiting; the note is kept on the quote');
+const m = L.mailFor(o, backQ, 'DreamBoat', 'https://app.ismpilot.com/quote/x', NOW + 7 * DAY, 'quote', 'Line <1> & 2');
+ok(/revise/i.test(m.subject) && m.html.includes('Line &lt;1&gt; &amp; 2'), 'the revision mail carries the note, escaped');
+
+// ---- the order to confirm -------------------------------------------------------------------
+const win: Quote = { ...answered, lineInfo: { ...answered.lineInfo, l2: { partNo: 'X' } } };
+const awarded = awardOrder({ ...o, quotes: [win] }, 'qa', 'Sven Larsen', '2026-11-09');
+const sentO: PurchaseOrder = { ...awarded, status: 'sent', sentAt: '2026-11-10', sentBy: 'Sven Larsen' };
+const op = L.pageData(sentO, sentO.quotes![0], link, 'DreamBoat', {}, NOW);
+ok(op.mode === 'order' && op.lines.length === 0 && op.answer === null, 'the order page: mode order, no quotation form');
+ok(op.order.lines.length === 1 && op.order.lines[0].price === 9.6 && op.order.lines[0].theirUnit === 'box' && op.order.left === 1, 'the lines ordered from them at their price (their box of 5 shown); the line they could not supply is left out and counted');
+ok(op.order.total === quoteTotal(sentO, sentO.quotes![0]).total && op.order.ref === 'Q-991', 'the total is the app\'s quote total; their quotation no.');
+ok(!JSON.stringify(op).includes('Sven'), 'no person on the order page either');
+const mo = L.mailFor(sentO, sentO.quotes![0], 'DreamBoat', 'https://app.ismpilot.com/quote/x', NOW + 7 * DAY, 'order');
+ok(/please confirm/.test(mo.subject) && mo.html.includes('Q-991'), 'the order mail asks them to confirm, on their quotation');
+const c1 = L.readConfirm({ name: 'Ana', confirm: { ok: true, ref: 'SO-55', eta: '2026-11-20' } });
+ok(!c1.error && c1.confirm.ok && c1.confirm.ref === 'SO-55' && c1.confirm.eta === '2026-11-20' && c1.name === 'Ana', 'confirmed with their order no. and delivery date');
+ok(L.readConfirm({ confirm: { ok: false, note: 'no' } }).error && !L.readConfirm({ confirm: { ok: false, note: 'out of stock until Dec' } }).error, 'cannot confirm: only with a reason');
+ok(L.readConfirm({ confirm: {} }).error && L.readConfirm({ confirm: { ok: true, eta: '20.11.2026' } }).confirm.eta === undefined, 'no answer refused; a date not yyyy-mm-dd dropped');
+const confirmed: Quote = L.withConfirm(sentO.quotes![0], c1.confirm, c1.name, NOW + 9000);
+ok(confirmed.confirm!.at === NOW + 9000 && confirmed.confirm!.by === 'Ana' && confirmed.prices.l1 === 9.6, 'the confirmation lands on the quote, the prices untouched');
+const cloudC = { ...sentO, quotes: [confirmed], updatedAt: NOW + 9000 };
+const staleC = { ...sentO, notes: 'bridge edit', updatedAt: NOW + 9500 };
+const keptC = foldOrder(staleC, cloudC);
+ok(keptC.quotes![0].confirm?.ok === true && keptC.notes === 'bridge edit' && keptC.updatedAt === NOW + 9501, 'an older copy on a device keeps its edit and takes the confirmation');
+const ext = foldQuotes([{ ...o.quotes![0], link: { sentAt: NOW, expires: NOW + 7 * DAY } }], [{ ...o.quotes![0], link: { sentAt: NOW, expires: NOW + 12 * DAY } }])[0];
+ok(ext.link!.expires === NOW + 12 * DAY, 'the same link extended elsewhere: the later date is kept');
+
+const copy = copyOrder(sentO, [sentO]);
+ok(!copy.quotes && !copy.award && !copy.quoteBy && copy.status === 'draft', 'a copied order asks for its own quotes: no quotes, award or date copied');
 
 ok(linkOpen(o.quotes![0], NOW) && !linkOpen(o.quotes![0], NOW + 8 * DAY) && !linkOpen({ ...o.quotes![0], link: undefined }, NOW), 'open until its date');
 ok(withLink(o, 'qa', { sentAt: 1, expires: 2 }).quotes![0].link!.expires === 2, 'withLink replaces one quote\'s link');

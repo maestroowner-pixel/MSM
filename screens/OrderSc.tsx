@@ -863,11 +863,12 @@ export default function OrderSc() {
         />
       ) : null}
 
-      {/* Quotations — once the order is saved; editable until it is sent */}
+      {/* Quotations — once the order is saved; editable until it is sent, then the winner's link asks them to confirm */}
       {moduleOn('suppliers') && !isNew && !draft && !receiving ? (
         <RfqPanel
           o={o}
           editable={officer && (o.status === 'draft' || o.status === 'standby')}
+          officer={officer}
           by={who.name}
         />
       ) : null}

@@ -163,22 +163,54 @@ export const withLink = (o: PurchaseOrder, quoteId: string, link: QuoteLink): Pu
   quotes: (o.quotes ?? []).map((q) => (q.id === quoteId ? { ...q, link } : q)),
 });
 
-/** Is the link still open on `now`? */
-export const linkOpen = (q: Quote, now = Date.now()) => !!q.link && q.link.expires > now;
+export type LinkClosed = 'removed' | 'expired' | 'cancelled' | 'awarded' | 'ordered' | 'chosen' | 'received';
+
+/**
+ * Why the quote's link takes no answer, or null — a COPY of functions/quoteLink.js
+ * closedWhy (check:quotelink compares them). Open: a quote while the order is not
+ * awarded or sent; the winner's order to confirm while it is sent or partly delivered.
+ */
+export function linkClosed(o: PurchaseOrder, q: Quote, now = Date.now()): LinkClosed | null {
+  if (o.deleted) return 'removed';
+  if (!q.link || q.link.expires <= now) return 'expired';
+  if (o.status === 'cancelled') return 'cancelled';
+  if (o.award && o.award.quoteId !== q.id) return 'awarded';
+  if (o.award) {
+    if (o.status === 'draft' || o.status === 'standby') return 'chosen';
+    if (o.status === 'received') return 'received';
+    return null;
+  }
+  if (o.status !== 'draft' && o.status !== 'standby') return 'ordered';
+  return null;
+}
+
+/** Does the link still open on `now`? Without the order: only its date. */
+export const linkOpen = (q: Quote, now = Date.now(), o?: PurchaseOrder) => !!q.link && (o ? linkClosed(o, q, now) === null : q.link.expires > now);
+
+/** Sent back for revision and not answered since. */
+export const awaitingRevision = (q: Quote) => !!q.link?.returned && (q.link.answeredAt ?? 0) <= q.link.returned.at;
 
 const answerAt = (q?: Quote) => q?.link?.answeredAt ?? 0;
+const confirmAt = (q?: Quote) => q?.confirm?.at ?? 0;
 
-/** `mine`'s quotes, each replaced by `theirs`' copy where theirs carries a newer answer from the page. */
+/**
+ * `mine`'s quotes, each replaced by `theirs`' copy where theirs carries a newer answer
+ * from the page; the later link (an extension of the same link: the later date), and
+ * the later answer to the order.
+ */
 export function foldQuotes(mine: Quote[] = [], theirs: Quote[] = []): Quote[] {
   const other = new Map(theirs.map((q) => [q.id, q]));
   return mine.map((q) => {
     const t = other.get(q.id);
     if (!t) return q;
-    const later = (t.link?.sentAt ?? 0) > (q.link?.sentAt ?? 0) ? t.link : q.link;
+    const ts = t.link?.sentAt ?? 0;
+    const qs = q.link?.sentAt ?? 0;
+    const later = ts > qs || (ts === qs && t.link && q.link && t.link.expires > q.link.expires) ? t.link : q.link;
     const base = answerAt(t) > answerAt(q) ? t : q;
-    if (base === q && later === q.link) return q;
+    const confirm = confirmAt(t) > confirmAt(q) ? t.confirm : q.confirm;
+    if (base === q && later === q.link && confirm === q.confirm) return q;
     const link = later ? { ...later, ...(answerAt(base) ? { answeredAt: answerAt(base) } : {}), ...(base.link?.answeredBy ? { answeredBy: base.link.answeredBy } : {}) } : undefined;
-    return { ...base, ...(link ? { link } : {}) };
+    return { ...base, ...(link ? { link } : {}), ...(confirm ? { confirm } : {}) };
   });
 }
 
