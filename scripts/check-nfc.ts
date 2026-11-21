@@ -13,7 +13,7 @@ import { uk } from '../constants/i18n/uk';
 import { MODULES } from '../constants/modules';
 import { readFileSync } from 'fs';
 import { manualQrPayload, parseManualQr } from '../services/crewQr';
-import { manualOf, markManual, remoteManuals } from '../services/manuals';
+import { machineLabelItem, machineManual, manualOf, manualTarget, markManual, remoteMachineManuals, remoteManuals } from '../services/manuals';
 
 let fail = 0;
 const ok = (c: boolean, m: string) => { if (!c) { fail++; console.log('✗', m); } else console.log('✓', m); };
@@ -72,6 +72,27 @@ const m2 = markManual(m1, 'a2');
 ok(manualOf({ attachments: m1 })?.id === 'a1' && manualOf({ attachments: m2 })?.id === 'a2' && m2.filter((a) => a.manual).length === 1, 'one manual per item: marking another moves the mark');
 ok(!markManual(m2, null).some((a) => 'manual' in a) && markManual(atts, null)[0] === atts[0], 'unmarked leaves no field behind; an untouched file stays the same object');
 ok(remoteManuals([{ attachments: m1 }, { attachments: m2 }, {}]).map((a) => a.id).join() === 'a2', 'a phone keeps copies only of manuals that live in the cloud');
+// ---- a PMS machine's manual (step 2) ----
+const mtags = issueTag([], '04D0D0D0D0D0D0', 'machine', 'mch_pump1', 'Bilge pump', 'C/E', 600);
+const mt = resolveTap('04D0D0D0D0D0D0', 'msm://manual/mch_pump1', mtags);
+ok(mt.ok && mt.code === 'msm://manual/mch_pump1', 'a machine tag with the manual\'s words: accepted, opens the manual');
+ok(resolveTap('04D0D0D0D0D0D0', null, mtags).ok && (resolveTap('04D0D0D0D0D0D0', null, mtags) as any).code === 'msm://manual/mch_pump1', '…words wiped: the register still opens the manual');
+ok(!resolveTap('04D0D0D0D0D0D0', 'msm://item/mch_pump1', mtags).ok && !resolveTap('04D0D0D0D0D0D0', 'msm://manual/mch_other', mtags).ok, '…an item\'s words or another machine\'s on it: refused');
+ok(payloadFor('machine', 'mch_pump1') === 'msm://manual/mch_pump1', 'a machine\'s tag is written with the manual\'s words');
+const pump = { id: 'mch_pump1', name: 'Bilge pump', maker: 'Azcue', model: 'BT-50', serial: 'S9', location: 'Engine room', manual: { url: 'https://firebasestorage.googleapis.com/v0/b/x/o/p?alt=media', name: 'Pump.pdf', addedAt: 5 }, updatedAt: 1 };
+const bare = { id: 'mch_fan', name: 'Fan', updatedAt: 1 };
+ok(machineManual(pump)?.uri === pump.manual.url && machineManual(pump)?.kind === 'document' && !machineManual(bare), 'a machine\'s manual reads as a document; none without one');
+ok(remoteMachineManuals([pump, bare, { ...bare, id: 'x', manual: { url: 'data:application/pdf;base64,AA', name: 'a.pdf', addedAt: 1 } }]).length === 1, 'phones keep copies only of machine manuals in the cloud');
+const old1 = { ...pump, id: 'mch_old', scrapped: { date: '2026-01-01', reason: 'worn', by: 'C/E', replacedBy: 'mch_mid' } };
+const mid = { ...pump, id: 'mch_mid', scrapped: { date: '2026-06-01', reason: 'worn', by: 'C/E', replacedBy: 'mch_pump1' } };
+const hit = manualTarget('mch_old', [], [pump], [old1, mid]);
+ok(hit?.kind === 'machine' && hit.machine.id === 'mch_pump1' && hit.via?.id === 'mch_old', 'an old pump\'s label leads to the unit fitted in its place, through every replacement');
+ok(manualTarget('liferafts_Ab3', [{ id: 'liferafts_Ab3' }], [pump])?.kind === 'item' && manualTarget('nothing', [], [pump]) === null, 'an item\'s manual is found first; an unknown code is nobody\'s');
+const loop = { ...pump, id: 'mch_a', scrapped: { date: '2026-01-01', reason: 'x', by: 'C/E', replacedBy: 'mch_b' } };
+const loop2 = { ...pump, id: 'mch_b', scrapped: { date: '2026-01-01', reason: 'x', by: 'C/E', replacedBy: 'mch_a' } };
+ok(!!manualTarget('mch_a', [], [], [loop, loop2]), 'a replacement loop does not hang');
+const li = machineLabelItem(pump);
+ok(li.type === 'Bilge pump · Azcue BT-50' && li.position === 'Engine room' && li.serial === 'S9' && !li.nextInspection && !li.expiry && !['liferafts'].includes(li.category), 'a machine\'s label: name and model, its place and serial, no date and no register category');
 
 const watch = issueTag([], 'a1:b2:c3:d4', 'person', 'c3', 'Tom Hall', 'Chief Officer', 500);
 ok(watch[0].id === 'tag_A1B2C3D4' && resolveTap('A1B2C3D4', null, watch).ok && (resolveTap('a1b2c3d4', null, watch) as any).code === 'msm://crew/c3', 'a watch registered as is (4-byte UID, no words) opens as its person');
@@ -149,7 +170,7 @@ ok(recentBoats([bm, { ...bm, id: 'x', boat: 'tender 1', at: 1 }, { ...bm, id: 'y
 // ---- wiring -------------------------------------------------------------------------
 const rules = readFileSync('firestore.rules', 'utf8');
 ok(/match \/nfc_tags\/\{id\}[\s\S]{0,900}id == 'tag_' \+ request\.resource\.data\.uid[\s\S]{0,600}allow delete: if false/.test(rules), 'rules: a tag is its UID, never deleted');
-ok(/kind in \['person', 'checkpoint', 'muster', 'item'\]/.test(rules), 'rules: equipment tags are allowed');
+ok(/kind in \['person', 'checkpoint', 'muster', 'item', 'machine'\]/.test(rules), 'rules: equipment and machine tags are allowed');
 ok(/match \/muster_marks\/\{id\}[\s\S]{0,1200}allow update, delete: if false/.test(rules) && /musterId \+ '_' \+ request\.resource\.data\.personId/.test(rules), 'rules: one mark per person per muster, written once');
 ok(/match \/musters\/\{id\}[\s\S]{0,900}affectedKeys\(\)\.hasOnly\(\['closedAt', 'closedBy', 'closeNote', 'updatedAt'\]\)/.test(rules), 'rules: a muster only closes');
 const fb = readFileSync('services/firebaseService.ts', 'utf8');

@@ -38,7 +38,7 @@ import NetInfo from '@react-native-community/netinfo';
 
 import * as photoQueue from '../services/photoQueue';
 import { keepManuals } from '../services/attachments';
-import { remoteManuals } from '../services/manuals';
+import { remoteMachineManuals, remoteManuals } from '../services/manuals';
 import { flushAiQueue } from '../services/aiQueue';
 import * as enrolment from '../services/enrolment';
 import * as trial from '../services/trial';
@@ -715,7 +715,8 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
   // Shortly after the register changes, and on every return to the foreground.
   useEffect(() => {
     const keep = () => {
-      const list = remoteManuals(flat);
+      // PMS machines' manuals too (step 2).
+      const list = [...remoteManuals(flat), ...remoteMachineManuals(machines)];
       if (!list.length) return;
       void photoQueue.allowed(prefs.photoUpload ?? 'wifi').then((no) => (no ? 0 : keepManuals(list))).catch(() => {});
     };
@@ -725,7 +726,7 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
       clearTimeout(timer);
       sub.remove();
     };
-  }, [flat, prefs.photoUpload]);
+  }, [flat, machines, prefs.photoUpload]);
 
   // AI operations waiting for a connection (services/aiQueue.ts): when one comes back, or the sync does.
   useEffect(() => {

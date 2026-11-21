@@ -7,7 +7,7 @@ export interface StepAct { t: string; steps: string[]; note?: string; who?: Step
 export interface StepScreen { id: string; title: string; path: string[]; who: StepWho; perVessel?: boolean; intro: string; acts: StepAct[] }
 export interface StepGroup { title: string; screens: StepScreen[] }
 
-/** 104 screens, 552 actions. */
+/** 104 screens, 554 actions. */
 export const MANUAL_STEPS: StepGroup[] = [
  {
   "title": "Getting started",
@@ -3495,6 +3495,27 @@ export const MANUAL_STEPS: StepGroup[] = [
        "Set **Last done** on each job"
       ],
       "who": "master"
+     },
+     {
+      "t": "Attach the machine’s manual",
+      "steps": [
+       "Open the system → **Manual** → **Attach the manual**",
+       "Choose the PDF or a picture (up to 200 MB)",
+       "**Open the manual — …** now stands at the top of the system"
+      ],
+      "note": "Phones keep a copy, so it opens with no connection. **Replace** puts in a new file; a copy of the system or the unit fitted in its place keeps the same manual.",
+      "who": "master",
+      "perVessel": true
+     },
+     {
+      "t": "A label or tag that opens the machine’s manual",
+      "steps": [
+       "Open the system → **Manual** → **Print a label that opens the manual**",
+       "Stick **MANUAL - scan to open** by the machine; the app’s scanner opens the manual at once",
+       "With NFC: **Write tag** under the manual — a tap does the same (on-metal tag on steel)"
+      ],
+      "note": "When the machine is scrapped and replaced, its old label opens the new unit’s manual.",
+      "who": "officers"
      },
      {
       "t": "Take the jobs from the maker’s manual (AI)",

@@ -42,6 +42,13 @@ import { MACHINE_FIELDS, changeTextUi, fieldName, planDiff, withChanges } from '
 import { playSuccessSound } from '../utils/sound';
 import { aiReady } from '../services/ai';
 import { ManualAiPanel } from '../components/ManualAiPanel';
+import { NfcTagRow } from '../components/NfcTagRow';
+import { MciIcon } from '../components/MciIcon';
+import { machineManual } from '../services/manuals';
+import { openFile } from '../services/attachments';
+import { uploadManual } from '../services/attachmentStorage';
+import { MANUAL_MAX, MANUAL_MAX_LOCAL, keepManualLocally, manualBlob, pickManual } from '../services/manualFile';
+import { openMedFile, sizeText } from '../services/medFiles';
 import { t, tk, tn, useT } from '../utils/i18n';
 
 /** services/pmsHistory conditionText, in the interface language (the report keeps the English one). */
@@ -138,6 +145,55 @@ export default function MachineSc() {
     return true;
   };
   const [changeReason, setChangeReason] = useState('');
+
+  // The maker's manual (services/manuals, step 2): as saved — a label or a tag reach the saved machine.
+  const savedManual = machineManual(existing);
+  const [manualBusy, setManualBusy] = useState(false);
+  const openManual = (a: { uri: string; name?: string }) =>
+    void (a.uri.startsWith('data:') ? openMedFile(a.uri, a.name ?? 'Manual') : openFile(a.uri, a.name)).catch((e: any) => Alert.alert(t('mman.title'), String(e?.message ?? e)));
+  // Reached by a manual label or tag (msm://manual/<id>): open it at once, once.
+  const openedManual = useRef(false);
+  useEffect(() => {
+    if (!route.params?.manual || openedManual.current || !existing) return;
+    openedManual.current = true;
+    if (savedManual) openManual(savedManual);
+    else Alert.alert(t('mman.title'), t('mman.none'));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [existing]);
+  const [manualPart, setManualPart] = useState(0);
+  const attachManual = async () => {
+    const f = await pickManual();
+    if (!f) return;
+    const max = sync.enrolled ? MANUAL_MAX : MANUAL_MAX_LOCAL;
+    if (f.size > max) return Alert.alert(t('mman.title'), t('mman.tooBig', { size: sizeText(f.size), max: sizeText(max) }));
+    setManualBusy(true);
+    setManualPart(0);
+    try {
+      const imo = (vessel?.imo ?? '').replace(/\D/g, '');
+      if (sync.enrolled && !imo) throw new Error(t('chem.noImo'));
+      // A new id each time: a replaced file goes to a new path (storage.rules — a member may not change a file).
+      // `man_`: only a manual may go above 12 MB (storage.rules fileOk).
+      const url = sync.enrolled
+        ? await uploadManual(imo, id, uid('man'), await manualBlob(f), f.mime, setManualPart)
+        : await keepManualLocally(f);
+      const manual = { url, name: f.name, addedAt: Date.now(), ...(meName ? { by: meName } : {}) };
+      if (await saveDetails({ manual })) {
+        // The draft too, or a later Save of a draft being typed would put the old one back.
+        setDraft((d) => ({ ...d, manual }));
+        playSuccessSound();
+      }
+    } catch (e: any) {
+      Alert.alert(t('mman.title'), String(e?.message ?? e));
+    } finally {
+      setManualBusy(false);
+    }
+  };
+  const [dropManual, setDropManual] = useState(false);
+  const removeManual = async () => {
+    if (!dropManual) return setDropManual(true);
+    setDropManual(false);
+    if (await saveDetails({ manual: undefined })) setDraft(({ manual: _drop, ...d }) => d);
+  };
   const [showLog, setShowLog] = useState(false);
 
   const onSave = async () => {
@@ -303,6 +359,13 @@ export default function MachineSc() {
               ) : null}
             </View>
           ) : !canPlan ? <Text style={[styles.sub, { marginBottom: SIZES.sm }]}>{PLAN_LOCKED}</Text> : null}
+          {/* The manual first: the reason a person scanned a label in an engine room. */}
+          {savedManual ? (
+            <TouchableOpacity style={[styles.card, { flexDirection: 'row', alignItems: 'center', gap: SIZES.sm, marginBottom: SIZES.md }]} onPress={() => openManual(savedManual)}>
+              <MciIcon name="book-open-variant" size={18} color={COLORS.primary} />
+              <Text style={[styles.link, { flex: 1 }]} numberOfLines={1}>{t('imn.open', { name: savedManual.name ?? t('it.doc') })}</Text>
+            </TouchableOpacity>
+          ) : null}
           {before.length ? (
             <View style={[styles.card, { marginBottom: SIZES.md }]}>
               <Text style={styles.sub}>{existing?.installed ? t('mch.fittedReplaced', { date: uiDate(existing.installed) }) : t('mch.itReplaced')}</Text>
@@ -637,6 +700,37 @@ export default function MachineSc() {
                   ))
                 : null}
             </View>
+          ) : null}
+          {!isNew && (savedManual || canPlan) ? (
+            <>
+              <Label>{t('mman.title')}</Label>
+              <View style={styles.card}>
+                <Text style={styles.sub}>
+                  {savedManual
+                    ? [savedManual.name, existing?.manual?.by, uiDate(new Date(existing!.manual!.addedAt).toISOString().slice(0, 10))].filter(Boolean).join(' · ')
+                    : t('mman.hint')}
+                </Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: SIZES.lg, marginTop: SIZES.sm }}>
+                  {canPlan ? (
+                    <TouchableOpacity onPress={() => void attachManual()} disabled={manualBusy} hitSlop={8}>
+                      <Text style={styles.link}>{manualBusy ? t('mman.uploading', { n: Math.round(manualPart * 100) }) : savedManual ? t('mman.replace') : t('mman.attach')}</Text>
+                    </TouchableOpacity>
+                  ) : null}
+                  {savedManual ? (
+                    <TouchableOpacity onPress={() => nav.navigate('Label', { machine: id })} hitSlop={8}>
+                      <Text style={styles.link}>{t('imn.label')}</Text>
+                    </TouchableOpacity>
+                  ) : null}
+                  {savedManual && canPlan ? (
+                    <TouchableOpacity onPress={() => void removeManual()} hitSlop={8}>
+                      <Text style={[styles.link, { color: COLORS.danger }]}>{dropManual ? t('mman.removeSure') : t('mman.remove')}</Text>
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
+              </View>
+              {/* A tag that opens the manual — on-metal, by the machine (types/nfc kind machine). */}
+              {savedManual ? <NfcTagRow kind="machine" refId={id} name={draft.name} /> : null}
+            </>
           ) : null}
           {!isNew && canPlan ? (
             <View style={[styles.jobsHead, { marginTop: SIZES.lg, justifyContent: 'flex-start', gap: SIZES.lg, flexWrap: 'wrap' }]}>

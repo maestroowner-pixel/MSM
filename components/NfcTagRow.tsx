@@ -110,7 +110,7 @@ export function NfcTagRow({ kind, refId, name, hasManual }: { kind: NfcTagKind; 
               : t('nfc.none')}
           </Text>
           {/* Equipment is mostly steel, where an ordinary NTAG sticker is not read at all. */}
-          {kind === 'item' && !tag ? <Text style={styles.sub}>{t('nfc.metalHint')}</Text> : null}
+          {(kind === 'item' || kind === 'machine') && !tag ? <Text style={styles.sub}>{t('nfc.metalHint')}</Text> : null}
         </View>
       </View>
       <View style={styles.row}>

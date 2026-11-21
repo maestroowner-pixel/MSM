@@ -55,6 +55,13 @@ export function hasCounter(m: Pick<Machine, 'dept' | 'counter'>): boolean {
   return m.counter ?? deptOf(m) === 'engineering';
 }
 
+export interface MachineManual {
+  url: string;
+  name: string;
+  addedAt: number;
+  by?: string;
+}
+
 export interface Machine {
   id: string;
   name: string;
@@ -113,6 +120,12 @@ export interface Machine {
    * history of work done on it out of reach.
    */
   scrapped?: { date: string; reason: string; by: string; byRank?: string; replacedBy?: string };
+  /**
+   * The maker's manual (21 Nov 2026, services/manuals.ts): a Storage link, or on a device on no
+   * vessel the file itself. A manual label or tag (msm://manual/<id>) opens it; phones keep a copy.
+   * A copy or a replacement of the machine takes it too — the same model, the same book.
+   */
+  manual?: MachineManual;
   /** Who changed what in this machine's record, and why (services/planLog.ts). */
   changes?: PlanChange[];
   deleted?: boolean;

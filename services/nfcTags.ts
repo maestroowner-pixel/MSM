@@ -18,7 +18,7 @@ export const tagId = (uid: string) => `tag_${normUid(uid)}`;
 
 /** The words written on a tag of this kind — the same as its QR. */
 export function payloadFor(kind: NfcTagKind, ref: string): string {
-  return kind === 'person' ? crewQrPayload(ref) : kind === 'checkpoint' ? checkpointQrPayload(ref) : kind === 'item' ? itemQrPayload(ref) : musterQrPayload(ref);
+  return kind === 'person' ? crewQrPayload(ref) : kind === 'checkpoint' ? checkpointQrPayload(ref) : kind === 'item' ? itemQrPayload(ref) : kind === 'machine' ? manualQrPayload(ref) : musterQrPayload(ref);
 }
 
 /** An item's tag may carry the manual's words instead (msm://manual/<id>): the same item, it opens the manual. */
@@ -53,7 +53,9 @@ export function resolveTap(uid: string, payload: string | null | undefined, tags
   if (!tag) return { ok: false, why: 'unknown' };
   if (tag.revokedAt) return { ok: false, why: 'revoked', tag };
   const said = payload ? parsePayload(payload) : null;
-  if (payload && (!said || said.kind !== tag.kind || said.ref !== tag.ref)) return { ok: false, why: 'mismatch', tag };
+  // The manual's words stand for an item or a machine (a machine's tag carries nothing else).
+  const sameKind = said && (said.kind === tag.kind || (said.manual && tag.kind === 'machine'));
+  if (payload && (!said || !sameKind || said.ref !== tag.ref)) return { ok: false, why: 'mismatch', tag };
   return { ok: true, tag, code: said?.manual ? manualQrPayload(tag.ref) : payloadFor(tag.kind, tag.ref) };
 }
 

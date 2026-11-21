@@ -31,7 +31,7 @@
 // nobody anything.
 // ===================================
 
-import { getStorage, ref as storageRef, uploadString, getDownloadURL, deleteObject } from 'firebase/storage';
+import { getStorage, ref as storageRef, uploadString, uploadBytesResumable, getDownloadURL, deleteObject } from 'firebase/storage';
 
 import * as fb from './firebaseService';
 
@@ -108,6 +108,24 @@ export async function uploadInline(
     if (!url) throw e;
     return url;
   }
+  return await getDownloadURL(ref);
+}
+
+/**
+ * A PMS machine's manual (services/manualFile): a Blob sent in chunks, with progress
+ * 0–1, so a 150 MB book neither becomes a JS string nor starts again from nothing
+ * on a dropped chunk. The file id must start with `man_` — storage.rules lets only
+ * those, from an officer or the office, go above 12 MB (up to 200).
+ */
+export async function uploadManual(
+  vessel: string, ownerId: string, fileId: string, blob: Blob, contentType: string, onProgress?: (part: number) => void,
+): Promise<string> {
+  if (!fileId.startsWith('man_')) throw new Error('A manual\'s file id starts with man_.');
+  const ref = storageRef(bucket(), attachmentPath(vessel, ownerId, fileId));
+  const task = uploadBytesResumable(ref, blob, { contentType });
+  await new Promise<void>((resolve, reject) => {
+    task.on('state_changed', (s) => onProgress?.(s.totalBytes ? s.bytesTransferred / s.totalBytes : 0), reject, () => resolve());
+  });
   return await getDownloadURL(ref);
 }
 

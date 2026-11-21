@@ -167,6 +167,7 @@ import StationBillSc from './screens/StationBillSc';
 import NfcPersonSc from './screens/NfcPersonSc';
 import NfcBatchSc from './screens/NfcBatchSc';
 import { NfcListener } from './components/NfcListener';
+import { manualTarget } from './services/manuals';
 import { ChatNotifier } from './components/ChatNotifier';
 import OrderEntrySc from './screens/OrderEntrySc';
 import WireLogSc from './screens/WireLogSc';
@@ -716,7 +717,7 @@ function Root() {
   useT();
   // Shared with the favourites (utils/favourites), which open places from anywhere.
   const navigationRef = navRef;
-  const { flat } = useData();
+  const { flat, machines, scrappedMachines } = useData();
   const [showSplash, setShowSplash] = useState(true);
   const hideSplash = useCallback(() => setShowSplash(false), []);
   // null = still loading the stored flag; false = must show; true = accepted
@@ -861,6 +862,10 @@ function Root() {
         // A group's label read by the phone's camera — the proof for the whole group.
         recordScanProof(groupProofKey(pendingLink.id), 'qr-link');
         navigationRef.navigate('GroupCheck', { groupId: pendingLink.id });
+      } else if (pendingLink.type === 'manual' && !flat.some((i) => i.id === pendingLink.id) && manualTarget(pendingLink.id, [], machines, scrappedMachines)) {
+        // A PMS machine's manual label (services/manuals): its card, which opens the manual.
+        const hit = manualTarget(pendingLink.id, [], machines, scrappedMachines);
+        if (hit?.kind === 'machine') navigationRef.navigate('Machine', { id: hit.machine.id, manual: 1 });
       } else {
         const found = flat.find((i) => i.id === pendingLink.id);
         // The phone's own camera read the label and opened this link — a scan,
@@ -876,7 +881,7 @@ function Root() {
     return () => {
       cancelled = true;
     };
-  }, [showSplash, legalAccepted, pendingLink, flat]);
+  }, [showSplash, legalAccepted, pendingLink, flat, machines, scrappedMachines]);
 
   return (
     <NavigationContainer

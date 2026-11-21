@@ -8,6 +8,7 @@
 // layout fits.
 // ===================================
 
+import { machineLabelItem } from '../services/manuals';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -231,7 +232,7 @@ export default function LabelSc() {
   const COLORS = useTheme();
   const nav = useNavigation<any>();
   const route = useRoute<any>();
-  const { flat } = useData();
+  const { flat, machines } = useData();
   const { width: screenW } = useWindowDimensions();
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
 
@@ -304,14 +305,19 @@ export default function LabelSc() {
     return Array.isArray(raw) ? raw : [raw];
   }, [route.params]);
 
-  const items: EquipmentItem[] = useMemo(
-    () => ids.map((id) => flat.find((i) => i.id === id)).filter((i): i is EquipmentItem => !!i),
-    [ids, flat]
-  );
+  // A PMS machine's manual label (services/manuals machineLabelItem): the machine in an item's shape.
+  const machineId: string | undefined = route.params?.machine;
+  const items: EquipmentItem[] = useMemo(() => {
+    if (machineId) {
+      const m = machines.find((x) => x.id === machineId);
+      return m ? [machineLabelItem(m)] : [];
+    }
+    return ids.map((id) => flat.find((i) => i.id === id)).filter((i): i is EquipmentItem => !!i);
+  }, [ids, flat, machineId, machines]);
 
   // A manual label (services/manuals): the item's code is msm://manual/<id>, and the label says so.
   // Never stored in the remembered texts — the item's ordinary label must keep its own code.
-  const manualLabel = !!route.params?.manual;
+  const manualLabel = !!route.params?.manual || !!machineId;
   const texts: Record<string, LabelText> = useMemo(
     () => (manualLabel ? Object.fromEntries(items.map((it) => [it.id, { ...labelText[it.id], qr: manualQrPayload(it.id), note: MANUAL_NOTE }])) : labelText),
     [manualLabel, items, labelText]

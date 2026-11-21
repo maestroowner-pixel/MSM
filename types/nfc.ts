@@ -20,7 +20,8 @@
 // deleted — a revoked tag stays on the register with when and by whom.
 // ===================================
 
-export type NfcTagKind = 'person' | 'checkpoint' | 'muster' | 'item';
+/** `machine` (21 Nov 2026): a PMS machine's tag — it carries only the manual's words (msm://manual/<id>). */
+export type NfcTagKind = 'person' | 'checkpoint' | 'muster' | 'item' | 'machine';
 
 export interface NfcTag {
   /** `tag_<uid>` — one record per chip, whatever it is given to. */

@@ -59,6 +59,7 @@ import { itemNumber, typeWithSize } from '../utils/itemText';
 import { playErrorSound, playSuccessSound } from '../utils/sound';
 import { parseCheckpointQr, parseCrewQr, parseKeyQr, parseManualQr, parseMedQr, parsePassQr, samePass, parseSopepQr, parseStoreQr } from '../services/crewQr';
 import { visit as visitCheckpoint } from '../services/patrolLive';
+import { manualTarget } from '../services/manuals';
 import { roomByCode, storeRooms } from '../types/stores';
 import { lockerCode, sopepLockers } from '../types/sopep';
 import { isDoubleScan, nextMove } from '../services/gangway';
@@ -115,7 +116,7 @@ export default function ScanSc() {
   const COLORS = useTheme();
   const nav = useNavigation<any>();
   const route = useRoute<any>();
-  const { flat, purchaseOrders, recordScan, crew, crewMoves, appendRow, visitors, saveRow, passengers, storeRoomList, sopepLockers: sopepLockerList, checkpoints, keyList, inspections: trail, templates, rounds, signingPolicy, prefs, setPrefs, addInspection, musters, musterMarks, musterStations, medItems } = useData();
+  const { flat, purchaseOrders, recordScan, crew, crewMoves, appendRow, visitors, saveRow, passengers, storeRoomList, sopepLockers: sopepLockerList, checkpoints, keyList, inspections: trail, templates, rounds, signingPolicy, prefs, setPrefs, addInspection, musters, musterMarks, musterStations, medItems, machines, scrappedMachines } = useData();
   const sync = useSync();
   const confirmSign = useSignConfirm();
   const activeRoundId = useActiveRound();
@@ -465,6 +466,12 @@ export default function ScanSc() {
           nav.replace('ItemDetail', { category: item.category, id: item.id, manual: 1 });
           return;
         }
+        // A PMS machine's manual label or tag (services/manuals): its card, which opens the manual.
+        const hit = manualTarget(manualOf, [], machines, scrappedMachines);
+        if (hit?.kind === 'machine') {
+          nav.replace('Machine', { id: hit.machine.id, manual: 1 });
+          return;
+        }
       }
 
       const match = lookupScan(code, flat);
@@ -488,7 +495,7 @@ export default function ScanSc() {
       }
       setResult(match);
     },
-    [flat, nav, recordScan, crew, crewMoves, appendRow, visitors, saveRow, sync.me, passengers, storeRoomList, sopepLockerList, quick, quickPass, musterId, stationId, musters, musterMarks, musterStations, boat]
+    [flat, nav, recordScan, crew, crewMoves, appendRow, visitors, saveRow, sync.me, passengers, storeRoomList, sopepLockerList, quick, quickPass, musterId, stationId, musters, musterMarks, musterStations, boat, machines, scrappedMachines]
   );
 
   // A wristband or tag: checked against the vessel's register, then the scan's own path.

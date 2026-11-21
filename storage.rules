@@ -125,8 +125,13 @@ service firebase.storage {
     // with something else, or delete it. The app writes a replaced file to a new
     // path (attachmentStorage fileTag, ItemDetail Replace), so a crew member
     // replacing a photo is not refused.
-    function fileOk() {
-      return request.resource.size < 12 * 1024 * 1024
+    // A PMS machine's manual (file `man_…`, 21 Nov 2026): a maker's book runs to
+    // 50–200 MB, so it may go up to 200 MB — from an officer or the office only, the
+    // people who attach it (the plan's keeper); everything else stays under 12 MB.
+    function fileOk(vessel, file) {
+      return (request.resource.size < 12 * 1024 * 1024
+              || (file.matches('man_.*') && request.resource.size < 200 * 1024 * 1024
+                  && ((member(vessel) && officer(vessel)) || shore(vessel))))
              && (request.resource.contentType.matches('image/.*')
                  || request.resource.contentType.matches('application/.*')
                  || request.resource.contentType.matches('text/.*'));
@@ -138,7 +143,7 @@ service firebase.storage {
       // An upload over an object that exists is judged as a CREATE (update is for
       // metadata only), so all three cases are here: a new file; the same bytes
       // again (size and md5 equal); or a changed file, by an officer or the office.
-      allow create: if fileOk()
+      allow create: if fileOk(vessel, file)
                     && (((member(vessel) || shore(vessel)) && resource == null)
                         || (member(vessel) && officer(vessel))
                         || shore(vessel)

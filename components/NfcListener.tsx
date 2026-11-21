@@ -12,6 +12,7 @@
 // ===================================
 
 import { parseManualQr } from '../services/crewQr';
+import { manualTarget } from '../services/manuals';
 import { useEffect, useRef } from 'react';
 import { Alert, AppState, Platform } from 'react-native';
 
@@ -26,12 +27,14 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /** Mounted beside the navigator (index.tsx), so it is handed the container's navigate. */
 export function NfcListener({ navigate }: { navigate: (route: string, params?: object) => void }) {
-  const { nfcTags, flat, recordScan } = useData();
+  const { nfcTags, flat, recordScan, machines, scrappedMachines } = useData();
   const on = Platform.OS === 'android' && moduleOn('nfc');
   const tagsRef = useRef(nfcTags);
   tagsRef.current = nfcTags;
   const flatRef = useRef(flat);
   flatRef.current = flat;
+  const machinesRef = useRef({ machines, scrappedMachines });
+  machinesRef.current = { machines, scrappedMachines };
   const scanRef = useRef(recordScan);
   scanRef.current = recordScan;
   const navRef = useRef(navigate);
@@ -67,6 +70,12 @@ export function NfcListener({ navigate }: { navigate: (route: string, params?: o
             void scanRef.current(item.id);
             navRef.current('ItemDetail', { category: item.category, id: item.id, ...(parseManualQr(r.code) ? { manual: 1 } : {}) });
           }
+        }
+        else if (r.tag.kind === 'machine') {
+          // A PMS machine's tag: its card, which opens the manual (services/manuals).
+          const hit = manualTarget(r.tag.ref, [], machinesRef.current.machines, machinesRef.current.scrappedMachines);
+          if (hit?.kind === 'machine') navRef.current('Machine', { id: hit.machine.id, manual: 1 });
+          else Alert.alert(t('nfc.tag'), t('scn.staleTitle'));
         }
         // The same wristband is still on the phone for a moment: let it go.
         await sleep(1500);

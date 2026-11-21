@@ -4,7 +4,7 @@
 //   firebase emulators:exec --only firestore,storage --project demo-msm-rules "node storage-rules-test.mjs <repo>/storage.rules"
 import { initializeTestEnvironment, assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
 import { doc, setDoc } from 'firebase/firestore';
-import { ref, uploadString, getBytes, deleteObject } from 'firebase/storage';
+import { ref, uploadString, uploadBytes, getBytes, deleteObject } from 'firebase/storage';
 import { readFileSync } from 'fs';
 const V = '9000001';
 const env = await initializeTestEnvironment({
@@ -49,6 +49,16 @@ await t(true, 'superintendent replaces a certificate scan', put(shoreS(), 'o3/c.
 await t(false, 'superintendent may not delete a file', deleteObject(ref(shoreS(), `safety_vessels/${V}/attachments/o3/c.txt`)));
 await t(false, 'demoted officer (record crew) may not overwrite', put(st('d', tok('admin', 'devDem')), 'o3/c.txt', 'fourth'));
 await t(true, 'officer deletes a file', deleteObject(ref(officer(), `safety_vessels/${V}/attachments/o3/c.txt`)));
+// A PMS machine's manual (21 Nov 2026): `man_…` may go to 200 MB, from an officer or the office; anything else stays under 12 MB.
+const big = (mb) => new Uint8Array(mb * 1024 * 1024);
+const putBytes = (s, path, mb) => uploadBytes(ref(s, `safety_vessels/${V}/attachments/${path}`), big(mb), { contentType: 'application/pdf' });
+await t(true, 'officer uploads a 20 MB manual', putBytes(officer(), 'mch1/man_1', 20));
+await t(true, 'superintendent uploads a 20 MB manual', putBytes(shoreS(), 'mch1/man_2', 20));
+await t(false, 'crew may not upload a big manual', putBytes(crew(), 'mch1/man_3', 20));
+await t(true, '…a small one crew still may (any member adds a file)', putBytes(crew(), 'mch1/man_4', 1));
+await t(false, 'a 20 MB file not named as a manual is refused', putBytes(officer(), 'mch1/other_1', 20));
+// Over 200 MB cannot be sent to the emulator (it refuses the body itself), so the ceiling is read from the rules.
+await t(true, 'the manual ceiling is 200 MB', Promise.resolve(/file\.matches\('man_\.\*'\) && request\.resource\.size < 200 \* 1024 \* 1024/.test(readFileSync(process.argv[2], 'utf8')) || Promise.reject(new Error('no 200 MB ceiling'))));
 // Marine Hospital Manager (16 Nov 2026): the files of the medical log, nothing else.
 const mhm = (role, id) => st(id, { ...tok(role, id), app: 'mhm' });
 await t(true, 'MHM officer reads a medical file', med(mhm('admin', 'devMhmA')));

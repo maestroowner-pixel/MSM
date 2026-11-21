@@ -551,6 +551,20 @@ app mirrors. Bundle id `com.kukalab.msm`.
   tag brings up the next. `writeTag(uri, prompt, refuse)` sees the UID BEFORE writing: a chip already on the register (`tagHolder`)
   throws `taken` and is left as it was — the last sticker held again would otherwise be rewritten and taken from its item. Skip / Stop;
   three failures in a row stop the run. The screen claims the reader (`claimNfc`).
+  **Manuals** (21 Nov 2026, the owner's idea "a tag in the crane cabin — scan it, the manual opens"; `services/manuals.ts`, pure):
+  an ITEM marks one attachment `manual: true` (long-press → Mark as the manual); a PMS MACHINE keeps `Machine.manual` {url, name,
+  addedAt, by} — a Storage link (`uploadInline` to `attachments/<machineId>/`, a new file id each time) or, on a device on no vessel,
+  on a phone on no vessel a copy in attachments/, on the web on no vessel the data URI (12 MB); set by whoever keeps the plan (`plans`).
+  **Up to 200 MB** (`services/manualFile.ts` picks the FILE, never a base64 string; `attachmentStorage.uploadManual` sends a Blob with
+  `uploadBytesResumable`, percent on screen): storage.rules `fileOk(vessel, file)` lets a file named `man_…` go to 200 MB from an
+  officer or the office only, everything else stays under 12 MB (`npm run deploy:storage`; scripts/storage-rules-test.mjs). One code for both:
+  `msm://manual/<id>` (crewQr) — `manualTarget` finds the item first, else the machine, following `scrapped.replacedBy` so an old
+  pump's label opens the new unit's manual. ScanSc, the deep link (index.tsx) and NfcListener open ItemDetail / Machine with
+  `manual: 1`, which opens the file once. Label: LabelSc `{id, manual: 1}` or `{machine: id}` (`machineLabelItem` — the machine in
+  an item's shape, category `pms_machine` that the register does not know, so no date and no category print), note "MANUAL - scan
+  to open". NFC: an item's tag may carry the manual's words; a machine's tag is kind `machine` and carries only them (rules `kind`
+  includes `machine` — `npm run deploy:rules`). Phones keep copies of every cloud manual (items and machines) in
+  `documentDirectory/kept/` on an allowed connection (SyncContext, `photoQueue.allowed`), erased with the device. `npm run check:nfc`.
 - **Muster and boat landing** (15 Nov 2026 — flag `muster`, off; plan item 70): `types/muster.ts`, pure `services/muster.ts` (pobList,
   start/close, `markPerson` — first mark stands, someone not in the frozen POB is refused —, `countMuster` per station with the assigned
   missing and "from another station", `musterSheet` → PMS-history PDF), screen `MusterSc` (route `Muster` `muster`; menu Safety after

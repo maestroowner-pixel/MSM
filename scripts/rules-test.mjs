@@ -256,6 +256,11 @@ await t(true, 'An Officer closes the defect', setDoc(R(officer, 'pms_defects', '
 await t(false, 'A closed defect cannot be closed again', setDoc(R(master, 'pms_defects', 'df9'), { id: 'df9', machineId: 'mc1', category: 'safety', description: 'Leak', closed: { note: 'other' }, updatedAt: 10 }));
 
 await t(true, 'An Officer records a counter replacement', setDoc(R(officer, 'pms_machines', 'mc1'), { id: 'mc1', name: 'Main engine PS', hours: 130, hoursDate: '2026-10-11', counterOffset: 130, updatedAt: 11 }));
+// The machine's manual (services/manuals): the plan's keeper attaches it; a crew or officer device does not.
+const MAN = { url: 'https://firebasestorage.googleapis.com/v0/b/x/o/m?alt=media', name: 'ME manual.pdf', addedAt: 12 };
+await t(false, 'An Officer does not attach a machine\'s manual', setDoc(R(officer, 'pms_machines', 'mc1'), { id: 'mc1', name: 'Main engine PS', hours: 130, hoursDate: '2026-10-11', counterOffset: 130, manual: MAN, updatedAt: 12 }));
+await t(true, 'The Master attaches a machine\'s manual', setDoc(R(master, 'pms_machines', 'mc1'), { id: 'mc1', name: 'Main engine PS', hours: 130, hoursDate: '2026-10-11', counterOffset: 130, manual: MAN, updatedAt: 12 }));
+await t(true, '…and an Officer still enters a reading on it', setDoc(R(officer, 'pms_machines', 'mc1'), { id: 'mc1', name: 'Main engine PS', hours: 131, hoursDate: '2026-10-12', counterOffset: 130, manual: MAN, updatedAt: 13 }));
 
 await t(true, 'An Officer starts a round', setDoc(R(officer, 'rounds', 'r1'), { id: 'r1', period: 'monthly', categories: ['eebd'] }));
 await t(false, 'Crew cannot start a round', setDoc(R(crew, 'rounds', 'r2'), { id: 'r2' }));
@@ -468,6 +473,7 @@ await t(true, '…masked it is taken', setDoc(R(officer, 'nfc_tags', 'tag_040000
 await t(true, 'An officer revokes a lost wristband', setDoc(R(officer, 'nfc_tags', NT.id), { ...NT, revokedAt: 2, revokedBy: 'Chief Officer', updatedAt: 2 }));
 await t(false, 'Nobody deletes a tag', deleteDoc(R(master, 'nfc_tags', NT.id)));
 await t(true, 'An officer tags a piece of equipment', setDoc(R(officer, 'nfc_tags', 'tag_04E0E0E0E0E0E0'), { ...NT, id: 'tag_04E0E0E0E0E0E0', uid: '04E0E0E0E0E0E0', kind: 'item', ref: 'liferafts_1', name: '3 · Liferaft' }));
+await t(true, 'An officer tags a PMS machine (its manual)', setDoc(R(officer, 'nfc_tags', 'tag_04E0E0E0E0E0E2'), { ...NT, id: 'tag_04E0E0E0E0E0E2', uid: '04E0E0E0E0E0E2', kind: 'machine', ref: 'mc1', name: 'Main engine PS' }));
 await t(false, '…an unknown kind is refused', setDoc(R(officer, 'nfc_tags', 'tag_04E0E0E0E0E0E1'), { ...NT, id: 'tag_04E0E0E0E0E0E1', uid: '04E0E0E0E0E0E1', kind: 'door' }));
 
 // Musters (types/muster.ts): officers keep the stations and start a muster; anyone aboard marks a person once.
