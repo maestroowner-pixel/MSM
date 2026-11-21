@@ -704,6 +704,13 @@ app mirrors. Bundle id `com.kukalab.msm`.
   whole second and half the round trip counts, round trip > 5 s ignored; `clockState` synced / off ≥ 10 s / stale > 6 h / unchecked).
   Shown after the times in `ShipClock` (tap = the full sentence). In memory only — after a restart without a connection it says "not
   checked". Nothing is corrected: every recorded time is still the device's. `npm run check:clock`.
+- **Record book drafts** (21 Nov 2026, ISO 21745 as read by BG Verkehr — "saved automatically, at least every 15 minutes"; no flag): pure-ish
+  `services/bookDraft.ts` (`draftWorth` — date/time alone, spaces, empty maps are not a draft) + `components/BookDraft.tsx` `useBookDraft({book,
+  open, off, f, setF, blank})` on OrbSc (`orb`), GarbageSc (`garbage`, off while amending) and LogBookSc (its `bookKey`). The form is kept in
+  `msm:book_draft:<book>` 500 ms after a change, and on closing the form / leaving the screen (the pending keystroke is flushed); opening New
+  entry restores it with a line + "Discard the draft"; the screen calls `clear()` right after the entry is written. NOT a record (books are
+  append-only and sealed; old builds would read a draft row as signed): device only, never synced, not in .msm, dropped by resetAllData's
+  prefix list. `npm run check:bookdraft`.
 - **Checklists** (`constants/checklists.ts`): 30 templates keyed `<category>.<period>`, weekly
   and/or monthly, plus a `genericTemplate` fallback so no category can refuse a round. **Line ids
   are permanent** — they are the keys of every stored `results` map, so re-word freely but never

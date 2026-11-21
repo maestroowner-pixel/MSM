@@ -27,6 +27,7 @@ import { formatDate, uiDate, uiDateTime } from '../utils/dates';
 import { uid } from '../utils/id';
 import { PositionInput } from '../components/PositionInput';
 import { playSuccessSound } from '../utils/sound';
+import { useBookDraft } from '../components/BookDraft';
 import { t, tn, useT } from '../utils/i18n';
 import { entryZone, shipHm } from '../utils/shipTime';
 
@@ -59,6 +60,8 @@ export default function GarbageSc() {
   const [f, setF] = useState(blank);
   // Amending an entry: the form opens with it, and the new version must say why.
   const [editing, setEditing] = useState<GarbageEntry | null>(null);
+  // New entries only: an amendment starts from the entry it changes.
+  const bookDraft = useBookDraft({ book: 'garbage', open: adding, off: !!editing, f, setF, blank: () => ({ ...blank, time: hhmm() }) });
   const [reason, setReason] = useState('');
   const [cancelling, setCancelling] = useState<GarbageEntry | null>(null);
   const [openHist, setOpenHist] = useState<string | null>(null);
@@ -118,6 +121,7 @@ export default function GarbageSc() {
         ...(head ? { prev: head } : {}),
       }, sig);
       await addGarbage(e);
+      if (!editing) bookDraft.clear();
       setEditing(null);
       setReason('');
       setF({ ...blank, port: f.port, position: '', date: today, time: hhmm() });
@@ -163,6 +167,7 @@ export default function GarbageSc() {
 
       {adding ? (
         <Card>
+          {bookDraft.ui}
           <Label>{t('pd.category')}</Label>
           <View style={styles.chips}>
             {CATS.map((c) => (

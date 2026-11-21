@@ -34,6 +34,7 @@ import { uid } from '../utils/id';
 import { PositionInput } from '../components/PositionInput';
 import { parsePosition } from '../utils/position';
 import { playSuccessSound } from '../utils/sound';
+import { useBookDraft } from '../components/BookDraft';
 import { t, tk, useT } from '../utils/i18n';
 import { entryZone, shipHm } from '../utils/shipTime';
 
@@ -81,6 +82,7 @@ export default function LogBookSc() {
   type Form = { code: string; date: string; time: string; method: string; treated: boolean | null; bwmp: boolean | null; remarks: string } & Record<Exclude<LogField, Flag>, string>;
   const blank = (): Form => ({ code: codes[0], date: today, time: hhmm(), method: '', treated: null, bwmp: null, remarks: '', tank: '', quantity: '', place: '', placeEnd: '', start: '', stop: '', distance: '', speed: '', depth: '', receiptNo: '', sulphur: '', equipment: '', substance: '', mass: '', rob: '', treatment: '', facility: '', area: '' });
   const [f, setF] = useState<Form>(blank);
+  const bookDraft = useBookDraft({ book: bookKey, open: adding, f, setF, blank });
   const cs = spec.codes[f.code] ?? spec.codes[codes[0]];
   const draft: Partial<LogEntry> & { code: string } = { code: f.code, date: f.date, time: f.time };
   for (const k of cs.fields) {
@@ -108,6 +110,7 @@ export default function LogBookSc() {
     const head = chainHead(all);
     const e: LogEntry = withSeal({ id: uid(bookKey), book: bookKey, ...(draft as any), shipOffset: entryZone((draft as any).date, (draft as any).time), text: preview, by: signer.name, ...(signer.rank ? { byRank: signer.rank } : {}), byId: signer.key, at: now, ...(head ? { prev: head } : {}), ...(sig.proof ? { signedWith: sig.proof } : {}), updatedAt: now }, sig);
     await appendRow(store.key, e);
+    bookDraft.clear();
     setF(blank());
     setAdding(false);
     playSuccessSound();
@@ -156,6 +159,7 @@ export default function LogBookSc() {
 
       {adding ? (
         <Card>
+          {bookDraft.ui}
           <Label>{t('log.operation')}</Label>
           <View style={styles.chips}>{codes.map((c) => chip(f.code === c, spec.codes[c].print ? `${spec.codes[c].print} · ${spec.codes[c].label}` : spec.codes[c].label, () => setF({ ...f, code: c, method: '' }), c))}</View>
           <View style={styles.pair}>

@@ -1038,6 +1038,7 @@ export async function resetAllData(): Promise<void> {
     'msm:handover_draft', // services/handover.ts — the outgoing officer's notes
     'msm:psc_walk', // services/pscWalk.ts — the PSC walk-round marks
   ];
-  const drafts = (await AsyncStorage.getAllKeys()).filter((k) => k.startsWith('msm:dp_draft:')); // services/dpDraft.ts
+  // services/dpDraft.ts, services/bookDraft.ts
+  const drafts = (await AsyncStorage.getAllKeys()).filter((k) => k.startsWith('msm:dp_draft:') || k.startsWith('msm:book_draft:'));
   await AsyncStorage.multiRemove([...keys, ...drafts]);
 }

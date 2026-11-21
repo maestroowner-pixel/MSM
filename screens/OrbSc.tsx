@@ -19,6 +19,7 @@ import { useVerification } from '../components/Verification';
 import { useSignConfirm, withSeal } from '../components/SignConfirm';
 import { chainHead } from '../services/seal';
 import { useSigner } from '../components/SignerChoice';
+import { useBookDraft } from '../components/BookDraft';
 import { useTheme } from '../contexts/ThemeContext';
 import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
@@ -70,6 +71,7 @@ export default function OrbSc() {
   // ---- the form ----
   const blank = { code: 'D' as OrbCode, date: today, time: hhmm(), tank: '', quantity: '', unit: 'm3' as 'm3' | 't', retained: '', method: '' as OrbMethod | '', place: '', start: '', stop: '', grade: '', bdnNo: '', receiptNo: '', remarks: '' };
   const [f, setF] = useState(blank);
+  const bookDraft = useBookDraft({ book: 'orb', open: adding, f, setF, blank: () => ({ ...blank, time: hhmm() }) });
   const fields = ORB_FIELDS[f.code];
   const draft = {
     date: f.date, time: f.time, code: f.code,
@@ -103,6 +105,7 @@ export default function OrbSc() {
     const head = chainHead(all);
     const e: OrbEntry = withSeal({ id: uid('orb'), ...(draft as any), shipOffset: entryZone((draft as any).date, (draft as any).time), text: preview, by: signer.name, ...(signer.rank ? { byRank: signer.rank } : {}), byId: signer.key, at: now, ...(head ? { prev: head } : {}), ...(sig.proof ? { signedWith: sig.proof } : {}), updatedAt: now }, sig);
     await appendRow(storage.ORB_KEY, e);
+    bookDraft.clear();
     setF({ ...blank, time: hhmm() });
     setAdding(false);
     playSuccessSound();
@@ -144,6 +147,7 @@ export default function OrbSc() {
 
       {adding ? (
         <Card>
+          {bookDraft.ui}
           <Label>{t('orb.code')}</Label>
           <View style={styles.chips}>
             {CODES.map((c) => <Chip key={c} on={f.code === c} label={`${c} · ${ORB_CODE[c]}`} onPress={() => setF({ ...f, code: c, method: '' })} />)}
