@@ -26,6 +26,7 @@ import {
   onEntitlementChange,
 } from '../services/purchases';
 import { t, tk, useT } from '../utils/i18n';
+import { PLANS, FLEET_FROM, eur, buyUrl, type Billing, type Plan } from '../constants/plans';
 
 const onWeb = Platform.OS === 'web';
 
@@ -66,6 +67,8 @@ export default function PaywallSc() {
   // so after activating a key it went on advertising the plan as if nothing had
   // happened — the one moment the user is certain to be looking at it.
   const [licensed, setLicensed] = useState(false);
+  // Web: which bill the plan cards show (21 Nov 2026 — published monthly prices).
+  const [billing, setBilling] = useState<Billing>('yearly');
 
   useEffect(() => {
     const check = () => { void isSubscribed().then(setLicensed).catch(() => {}); };
@@ -107,14 +110,23 @@ export default function PaywallSc() {
     }
   };
 
-  // The price is on request (27 Oct 2026): it depends on the vessel's size and
-  // the modules it uses, so the web asks for a quote instead of selling a figure.
-  // The licence key the operator is then issued is activated below, as before.
-  const onQuote = () => {
+  // Published prices since 21 Nov 2026 (constants/plans.ts): a vessel subscribes to
+  // a plan by its Lemon Squeezy link; a fleet, onboarding or a plan whose link is not
+  // made yet goes to the quote mail. The licence key from the receipt is activated
+  // below, as before.
+  const onQuote = (plan?: Plan) => {
     const who = [vessel?.vessel_name, vessel?.imo ? `IMO ${vessel.imo}` : ''].filter(Boolean).join(', ');
-    const subject = encodeURIComponent(`ISMpilot quote${who ? ` — ${who}` : ''}`);
-    const body = encodeURIComponent(t('pw.quoteMail', { vessel: who || '—' }));
+    const subject = encodeURIComponent(`ISM AI Pilot ${plan ? 'subscription' : 'quote'}${who ? ` — ${who}` : ''}`);
+    const body = encodeURIComponent(
+      (plan ? `Plan: ${t(`pw.plan.${plan.key}`)}, ${billing}\n` : '') + t('pw.quoteMail', { vessel: who || '—' })
+    );
     void Linking.openURL(`mailto:${QUOTE_EMAIL}?subject=${subject}&body=${body}`).catch(() => Alert.alert(t('pw.quote'), QUOTE_EMAIL));
+  };
+
+  const onSubscribe = (plan: Plan) => {
+    const url = buyUrl(plan, billing, { imo: vessel?.imo, name: vessel?.vessel_name });
+    if (!url) return onQuote(plan);
+    void Linking.openURL(url).catch(() => onQuote(plan));
   };
 
   const onRestore = async () => {
@@ -176,13 +188,41 @@ export default function PaywallSc() {
               </Text>
             </View>
           ) : onWeb ? (
-            <View style={styles.planCard}>
-              <View style={styles.trialPill}>
-                <Text style={styles.trialPillText}>{t('pw.full')}</Text>
+            <View style={{ alignSelf: 'stretch' }}>
+              <View style={styles.billRow}>
+                {(['monthly', 'yearly'] as Billing[]).map((b) => (
+                  <TouchableOpacity
+                    key={b}
+                    onPress={() => setBilling(b)}
+                    style={[styles.billBtn, billing === b && styles.billBtnOn]}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: billing === b }}
+                  >
+                    <Text style={[styles.billText, billing === b && styles.billTextOn]}>
+                      {b === 'monthly' ? t('pw.billMonthly') : t('pw.billYearly')}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
               </View>
-              <Text style={styles.planPrice}>{t('pw.onRequest')}</Text>
-              <Text style={styles.planUnit}>{t('pw.unit')}</Text>
-              <Text style={styles.planNote}>{t('pw.quoteNote')}</Text>
+              {PLANS.map((p) => (
+                <View key={p.key} style={[styles.planCard, p.key === 'full' && { borderWidth: 2.5 }]}>
+                  <View style={styles.trialPill}>
+                    <Text style={styles.trialPillText}>{t(`pw.plan.${p.key}`)}</Text>
+                  </View>
+                  <Text style={styles.planPrice}>
+                    {billing === 'monthly' ? eur(p.monthly) : eur(p.yearly)}
+                    <Text style={styles.planPer}>{billing === 'monthly' ? t('pw.perMonth') : t('pw.perYear')}</Text>
+                  </Text>
+                  {billing === 'yearly' ? (
+                    <Text style={styles.planUnit}>{t('pw.yearSaves', { m: eur(Math.round(p.yearly / 12)) })}</Text>
+                  ) : null}
+                  <Text style={styles.planNote}>{t(`pw.plan.${p.key}Body`)}</Text>
+                  <TouchableOpacity style={[styles.cta, styles.planBuy]} onPress={() => onSubscribe(p)} activeOpacity={0.85}>
+                    <Text style={styles.ctaText}>{t('pw.subscribe')}</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+              <Text style={[styles.planNote, { marginTop: SIZES.sm }]}>{t('pw.unit')}</Text>
             </View>
           ) : (
             <View style={styles.planCard}>
@@ -247,8 +287,8 @@ export default function PaywallSc() {
               accepts a licence key the operator was given. The store listing, not
               the app, is where the commercial arrangement is described. */}
           {onWeb && !licensed ? (
-            <TouchableOpacity style={styles.cta} onPress={onQuote} activeOpacity={0.85}>
-              <Text style={styles.ctaText}>{t('pw.quote')}</Text>
+            <TouchableOpacity onPress={() => onQuote()} hitSlop={8}>
+              <Text style={styles.restore}>{t('pw.fleetQuote', { n: FLEET_FROM })}</Text>
             </TouchableOpacity>
           ) : null}
 
@@ -262,7 +302,7 @@ export default function PaywallSc() {
 
           <Text style={styles.fine}>
             {onWeb
-              ? t('pw.quoteFine')
+              ? t('pw.subscribeFine')
               : // Apple's IAP disclosure belongs on a screen that SELLS through IAP.
                 // This one does not any more — nothing is charged to a store account
                 // here — so saying it would be plainly untrue to the person reading it.
@@ -332,6 +372,19 @@ const makeStyles = (COLORS: Palette) =>
       fontWeight: '600',
       marginTop: SIZES.xs,
     },
+    planPer: { fontSize: SIZES.body, fontWeight: '600', color: COLORS.textLight },
+    planBuy: { alignSelf: 'stretch', marginTop: SIZES.md, paddingVertical: SIZES.md },
+    billRow: { flexDirection: 'row', alignSelf: 'center', gap: SIZES.xs, marginTop: SIZES.lg },
+    billBtn: {
+      borderWidth: 1.5,
+      borderColor: COLORS.primary,
+      borderRadius: SIZES.radiusRound,
+      paddingHorizontal: SIZES.md,
+      paddingVertical: SIZES.xs,
+    },
+    billBtnOn: { backgroundColor: COLORS.primary },
+    billText: { color: COLORS.primary, fontSize: SIZES.small, fontWeight: '700' },
+    billTextOn: { color: COLORS.textWhite },
     planNote: { fontSize: SIZES.small, color: COLORS.textLight, textAlign: 'center', marginTop: SIZES.xs, lineHeight: 18 },
     licenseCard: {
       ...COLORS.glassCard,

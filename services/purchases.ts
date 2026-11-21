@@ -29,6 +29,19 @@ import { Linking, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as fb from './firebaseService';
 import * as ls from './lemonSqueezy';
+import { getFunctions, httpsCallable } from 'firebase/functions';
+
+/** functions/licence.js `licenceBind` — attaches the key to this vessel, or says whose it is not. */
+async function bindLicence(key: string, instanceId?: string): Promise<fb.Entitlement> {
+  const app = fb.firebaseApp();
+  if (!app) throw new Error('Firebase is not configured.');
+  const call = httpsCallable<{ key: string; instanceId?: string }, { entitlement: fb.Entitlement }>(
+    getFunctions(app, 'europe-west1'),
+    'licenceBind'
+  );
+  const r = await call({ key, ...(instanceId ? { instanceId } : {}) });
+  return r.data.entitlement;
+}
 
 export const TRIAL_DAYS = 60;
 
@@ -162,30 +175,24 @@ export async function activateLicense(key: string): Promise<{ ok: boolean; messa
   if (!uid) return { ok: false, message: 'Join this vessel first (Settings → Join this vessel), so the licence can be attached to it.' };
   const res = await ls.activateLicense(key);
   if (!res.ok) return { ok: false, message: res.message };
-  // `instanceId` is absent whenever activation fell back to validate — which is
-  // exactly what happens once the key's activation limit is used up. Firestore
-  // refuses a payload containing `undefined`, so the key is omitted rather than
-  // set to nothing.
-  const ent: fb.Entitlement = {
-    active: true,
-    provider: 'lemonsqueezy',
-    licenseKey: res.licenseKey ?? key.trim(),
-    ...(res.instanceId ? { instanceId: res.instanceId } : {}),
-    activatedAt: Date.now(),
-    expiresAt: res.expiresAt ?? null,
-    lastCheckedAt: Date.now(),
-  };
+  // One key = one vessel (21 Nov 2026): the SERVER attaches it — checks it with Lemon
+  // Squeezy again and registers it to this IMO (functions/licence.js). firestore.rules
+  // refuse a new key written from a device, so there is no local fallback.
+  let ent: fb.Entitlement;
   try {
-    await fb.saveEntitlement(uid, ent);
+    ent = await bindLicence(res.licenseKey ?? key.trim(), res.instanceId);
   } catch (e: any) {
-    const denied = /permission|insufficient/i.test(String(e?.message ?? e));
-    return {
-      ok: false,
-      message: denied
-        ? 'The licence is valid, but only the Master device may attach it to the vessel. ' +
-          'Activate it on the Master, or ask them to make this device Master in Accounts → Devices.'
-        : `Activated, but couldn't save to the vessel: ${String(e?.message ?? e)}`,
-    };
+    const code = String(e?.code ?? '');
+    const msg = String(e?.message ?? e);
+    if (/permission-denied/.test(code)) {
+      return {
+        ok: false,
+        message: 'The licence is valid, but only the Master device may attach it to the vessel. ' +
+          'Activate it on the Master, or ask them to make this device Master in Accounts → Devices.',
+      };
+    }
+    if (/already-exists|failed-precondition|invalid-argument/.test(code)) return { ok: false, message: msg };
+    return { ok: false, message: `Activated, but couldn't attach it to the vessel: ${msg}` };
   }
   await cacheEntitlement(ent);
   return { ok: true };

@@ -63,6 +63,20 @@ await t(true, '…and arrives fine without them', setDoc(doc(newcomer, 'safety_v
 await t(true, 'Crew still writes the register beside modules', setDoc(doc(crew, 'safety_vessels', V), { register: '{"a":1}', registerUpdatedAt: 2 }, { merge: true }));
 await t(false, 'Master cannot take a module away either', updateDoc(doc(master, 'safety_vessels', V), { modules: {} }));
 await t(true, 'Crew reads the modules it has been given', getDoc(doc(crew, 'safety_vessels', V)));
+// One licence key = one vessel (21 Nov 2026): only functions/licence.js puts a NEW key on the vessel.
+await env.withSecurityRulesDisabled(async (c) => {
+  await updateDoc(doc(c.firestore(), 'safety_vessels', V), { entitlement: { active: true, licenseKey: 'KEY-A', lastCheckedAt: 1 } });
+  await setDoc(doc(c.firestore(), 'licence_keys', 'h1'), { vessel: V });
+});
+await t(true, 'Master re-checks the licence with the same key', updateDoc(doc(master, 'safety_vessels', V), { entitlement: { active: false, licenseKey: 'KEY-A', lastCheckedAt: 2 } }));
+await t(false, 'Master cannot put another key on the vessel', updateDoc(doc(master, 'safety_vessels', V), { entitlement: { active: true, licenseKey: 'KEY-B', lastCheckedAt: 3 } }));
+await t(false, 'Master cannot drop the key and write a new one by merge', setDoc(doc(master, 'safety_vessels', V), { entitlement: { licenseKey: 'KEY-C' } }, { merge: true }));
+await t(false, 'Officer cannot touch the licence', updateDoc(doc(officer, 'safety_vessels', V), { entitlement: { active: true, licenseKey: 'KEY-A', lastCheckedAt: 4 } }));
+await t(true, 'Crew still writes the register beside the licence', setDoc(doc(crew, 'safety_vessels', V), { register: '{"b":1}', registerUpdatedAt: 3 }, { merge: true }));
+await t(false, 'Nobody reads the key registry', getDoc(doc(master, 'licence_keys', 'h1')));
+await t(false, 'Nobody writes the key registry', setDoc(doc(master, 'licence_keys', 'h2'), { vessel: V }));
+await t(false, 'A new vessel document cannot arrive with a licence', setDoc(doc(as('n2', { vessel: '9000004', role: 'superadmin', approved: true, deviceId: 'devN' }), 'safety_vessels', '9000004'), { register: '{}', entitlement: { active: true, licenseKey: 'KEY-A' } }));
+
 await t(true, 'everyone reads the crew list', getDoc(R(crew, 'crew', 'c1')));
 await t(true, 'Master writes the crew list', setDoc(R(master, 'crew', 'c2'), { name: 'Ana', active: true }));
 await t(true, 'Officer (Chief Officer) writes the crew list — NEW', setDoc(R(officer, 'crew', 'c3'), { name: 'Tom', active: true }));

@@ -969,8 +969,7 @@ do not regress them:
 
 ### Licensing — one licence per VESSEL, sold outside the stores (5 Sep 2026)
 
-The licence is **per vessel (one IMO), priced on request** (since 27 Oct 2026 — by length band and
-discounts, worked out in MSM Fleet → Pricing), bought by the operator on LemonSqueezy through a payment
+The licence is **per vessel (one IMO)**, at published plan prices since 21 Nov 2026 (before that on request by length band, 27 Oct), bought by the operator on LemonSqueezy through a payment
 link made for that vessel (`custom_price` on product 1197509) and attached to the vessel's Firestore
 account. Every enrolled device inherits it; a crew member buys nothing.
 `services/purchases.ts` `activateLicense()` works on ALL platforms now (it was web-only), and
@@ -986,6 +985,23 @@ review rejects (guideline 3.1.1). What is allowed is this shape: free app, silen
 pay, accepting a key the operator was issued. Apple's IAP disclosure ("payment is charged to your
 store account…") was removed from the native paywall for the same reason — there is no store
 charge to disclose, so printing it would simply be untrue.
+
+**Published monthly prices, web only** (21 Nov 2026, "as Nauticai does"): `constants/plans.ts` — Logbooks €89 / month or
+€890 / year, Full €199 / €1 990 (a year = ten months), fleets of 5+ and onboarding by quote. The WEB paywall shows both plans with a
+Monthly / Yearly switch and Subscribe → the plan's Lemon Squeezy buy link (`PLANS[].buy`, subscription variants of product 1197509
+with licence keys; `checkout[custom][imo|vessel]` added); an empty link falls back to the quote mail with the plan. Native builds
+still show no price. Licence checks need no change: `revalidateLicence` reads the key's STATUS daily, so a monthly subscription that
+stops is switched off the same way as a yearly one. The plan is not read off the key — Logbooks vessels get their modules from us
+(`npm run modules`). Keep plans.ts, ismpilot.com (#pricing), the booklet and MSM Fleet's `PRICING_DEFAULTS` in step.
+**One key = one vessel** (21 Nov 2026, `functions/licence.js`): the paywall still activates the key with LS in the browser, then
+calls `licenceBind` (live Master only) — the server validates the key with LS itself (store + `LS_PRODUCT_IDS`, a COPY: change both),
+registers `licence_keys/{sha256(key)}` → IMO in a transaction (another vessel's key → `already-exists`; the same vessel again is fine)
+and writes the entitlement with admin credentials (`update`, not merge). firestore.rules (`sameLicenceKey`): a device may rewrite the
+entitlement only with the key already there (the daily re-check); `licence_keys` is server-only; a vessel document cannot be created
+with an entitlement. Older builds that write a new key themselves are refused — activate on the web. Support:
+`cd functions && npm run licence -- list | bind-existing | free <IMO>` (bind-existing once with the deploy). Logbooks is its own LS
+products: 1535056 monthly (variant 2387735), 1535063 yearly (variant 2387746); Full 1535068 monthly (variant 2387757), 1535069 yearly (variant 2387758). rules-test.mjs covers it.
+The paragraph below is the history.
 
 **The app holds no price and no checkout link** (3 Nov 2026): `LS_PRICE_STRING` (€99) and the public
 `LS_CHECKOUT_URL` were removed with the unused `getOffer` / `purchaseYearly` / `webCheckoutUrl` — the link sat

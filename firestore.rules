@@ -136,6 +136,13 @@ service cloud.firestore {
       return member(v) || shore(v);
     }
 
+// The licence key on the vessel document is unchanged by this write (or there is none
+// either side). Only functions/licence.js — admin credentials — puts a new key there.
+function sameLicenceKey() {
+  return request.resource.data.get('entitlement', {}).get('licenseKey', null)
+      == resource.data.get('entitlement', {}).get('licenseKey', null);
+}
+
     match /safety_vessels/{v} {
       // The register itself — one document holding the whole snapshot. Everyone
       // who is in may read and write it: that is the data model.
@@ -143,7 +150,7 @@ service cloud.firestore {
       // `modules` — modules switched on for this vessel only (constants/modules
       // `setVesselModules`) — is set by us, with admin credentials, and by no
       // device: not even a Master, since it is what the vessel has been sold.
-      allow create: if member(v) && !('modules' in request.resource.data);
+      allow create: if member(v) && !('modules' in request.resource.data) && !('entitlement' in request.resource.data);
 
       // …but NOT the licence. `entitlement` sits on this same document, and MSM
       // Pro is now licensed per vessel and read from it — so leaving it writable
@@ -163,8 +170,14 @@ service cloud.firestore {
       // own evidence erased by a job running at 3 a.m. with nobody watching. The
       // sweep itself writes here too — it runs with admin credentials and is not
       // subject to these rules.
+      // One licence key = one vessel (21 Nov 2026, functions/licence.js): a NEW key is
+      // attached only by the `licenceBind` callable, which checks it with Lemon Squeezy
+      // and registers it to this IMO. A Master may still rewrite the entitlement — the
+      // daily re-check mirrors active/expiresAt/lastCheckedAt — but only with the key
+      // already on the vessel; otherwise one key could be pasted onto any number of ships.
       allow update: if member(v)
                     && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['modules'])
+                    && sameLicenceKey()
                     && (isSuper(v)
                         || !request.resource.data.diff(resource.data)
                               .affectedKeys().hasAny(['entitlement', 'signingPolicy', 'photoArchive', 'emailReport', 'inspectToken', 'inspectTokenExpiry', 'icsToken']));

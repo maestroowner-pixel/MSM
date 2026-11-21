@@ -1,6 +1,6 @@
 {
   "name": "msm-functions",
-  "description": "Marine Safety Manager \u2014 enrolment (account issuance) on the server side.",
+  "description": "Marine Safety Manager — enrolment (account issuance) on the server side.",
   "private": true,
   "main": "index.js",
   "engines": {
@@ -18,7 +18,8 @@
     "close-certs": "node scripts/close-crew-certs.js",
     "seed:orders": "node scripts/seed-orders.js",
     "fix:device": "node scripts/fix-device.js",
-    "apikey": "node scripts/api-key.js"
+    "apikey": "node scripts/api-key.js",
+    "licence": "node scripts/licence-keys.js"
   },
   "dependencies": {
     "firebase-admin": "^12.7.0",

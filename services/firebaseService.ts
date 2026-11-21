@@ -1829,6 +1829,8 @@ export interface Entitlement {
   expiresAt?: number | null;
   /** When the licence was last confirmed with LemonSqueezy (ms epoch). */
   lastCheckedAt?: number;
+  /** The Lemon Squeezy variant's name when the server attached it (functions/licence.js), e.g. "Full — monthly". */
+  plan?: string;
 }
 
 /** uid of the currently signed-in vessel, or null if not signed in. */

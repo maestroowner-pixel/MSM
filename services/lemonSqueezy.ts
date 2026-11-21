@@ -32,7 +32,10 @@ export const LS_STORE_ID = 374407;
  * the checkout sells. Re-check the checkout before changing this list: a wrong
  * id here fails silently for every buyer and loudly for none of us.
  */
-export const LS_PRODUCT_IDS: number[] = [1197509, 1205672];
+// 1535056 = "ISMPilot LogBooks" (monthly), 1535063 = "ISMPilot LogBooks Annual", 1535068 = Full monthly, 1535069 = Full annual (21 Nov 2026) —
+// each plan × billing is a product of its own in the store —
+// its keys must pass too. Keep functions/licence.js and MSM Fleet's list in step.
+export const LS_PRODUCT_IDS: number[] = [1197509, 1205672, 1535056, 1535063, 1535068, 1535069];
 
 export interface LicenseResult {
   ok: boolean;

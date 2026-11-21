@@ -6062,12 +6062,13 @@ export const MANUAL_STEPS: StepGroup[] = [
     "intro": "The licence belongs to the vessel, not to a phone: once it is on the ship’s account every device that joined has full access. Nothing is bought in the app.",
     "acts": [
      {
-      "t": "Ask for a quote",
+      "t": "Subscribe",
       "steps": [
        "**Settings** → **PRO**",
-       "**Request a quote** — the mail opens with the vessel’s name"
+       "**Monthly** or **Yearly** (a year costs ten months)",
+       "**Subscribe** under **Logbooks** or **Full** — pay on Lemon Squeezy; the licence key comes with the receipt"
       ],
-      "note": "Web app. Priced by the vessel’s size and the modules it uses."
+      "note": "Web app. A fleet of 5 vessels or more, or onboarding: **Request a quote** at the bottom."
      },
      {
       "t": "Activate the licence key",

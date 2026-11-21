@@ -880,6 +880,9 @@ exports.icsCalendar = require('./icsCalendar').icsCalendar;
 
 // The vessel's API, and the Master's keys to it (api.js, 28 Oct 2026).
 exports.api = require('./api').api;
+// One licence key = one vessel (functions/licence.js, 21 Nov 2026).
+exports.licenceBind = require('./licence').licenceBind;
+
 exports.apiKeyCreate = require('./api').apiKeyCreate;
 exports.apiKeyRevoke = require('./api').apiKeyRevoke;
 
