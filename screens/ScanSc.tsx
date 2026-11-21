@@ -57,7 +57,7 @@ import { CATEGORY_MAP, catLabel } from '../constants/categories';
 import { CheckResult, InspectionPeriod } from '../types/inspection';
 import { itemNumber, typeWithSize } from '../utils/itemText';
 import { playErrorSound, playSuccessSound } from '../utils/sound';
-import { parseCheckpointQr, parseCrewQr, parseKeyQr, parseMedQr, parsePassQr, samePass, parseSopepQr, parseStoreQr } from '../services/crewQr';
+import { parseCheckpointQr, parseCrewQr, parseKeyQr, parseManualQr, parseMedQr, parsePassQr, samePass, parseSopepQr, parseStoreQr } from '../services/crewQr';
 import { visit as visitCheckpoint } from '../services/patrolLive';
 import { roomByCode, storeRooms } from '../types/stores';
 import { lockerCode, sopepLockers } from '../types/sopep';
@@ -451,6 +451,20 @@ export default function ScanSc() {
         }
         nav.replace('Main', { screen: 'Security', params: { view: 'gangway', visitor: holder.id } });
         return;
+      }
+
+      // A manual label (msm://manual/<id>): the item's card, which opens the manual at once.
+      // Read by the camera or the item's tag it is the same item in front of the person.
+      const manualOf = parseManualQr(code);
+      if (manualOf) {
+        const item = flat.find((x) => x.id === manualOf);
+        if (item) {
+          if (via === 'camera') recordScanProof(item.id, 'qr-camera');
+          if (via === 'nfc') recordScanProof(item.id, 'nfc');
+          void recordScan(item.id);
+          nav.replace('ItemDetail', { category: item.category, id: item.id, manual: 1 });
+          return;
+        }
       }
 
       const match = lookupScan(code, flat);

@@ -1280,6 +1280,17 @@ service cloud.firestore {
                       && request.resource.data.looks.size() > 0;
         allow update, delete: if false;
       }
+      // The muster list (types/stationBill.ts): a revision is issued whole by the Master and never changed —
+      // a crew change is a new revision. Everyone aboard reads their duties; the office reads it.
+      match /station_bills/{id} {
+        allow read: if reader(v);
+        allow create: if isSuper(v) && request.resource.data.id == id
+                      && request.resource.data.rev is int && request.resource.data.rev > 0
+                      && id == 'sb_r' + string(request.resource.data.rev)
+                      && request.resource.data.rows is list && request.resource.data.rows.size() > 0
+                      && request.resource.data.zones is list && request.resource.data.issuedBy is string;
+        allow update, delete: if false;
+      }
       // NFC tags handed out (types/nfc.ts): the chip's UID is the id, so a tap is checked against the
       // register on every phone. Officers write and revoke; nothing is deleted. A guest's name is masked.
       match /nfc_tags/{id} {

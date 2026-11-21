@@ -7,7 +7,7 @@ export interface StepAct { t: string; steps: string[]; note?: string; who?: Step
 export interface StepScreen { id: string; title: string; path: string[]; who: StepWho; perVessel?: boolean; intro: string; acts: StepAct[] }
 export interface StepGroup { title: string; screens: StepScreen[] }
 
-/** 103 screens, 546 actions. */
+/** 104 screens, 552 actions. */
 export const MANUAL_STEPS: StepGroup[] = [
  {
   "title": "Getting started",
@@ -551,6 +551,16 @@ export const MANUAL_STEPS: StepGroup[] = [
       ]
      },
      {
+      "t": "Keep the manual with the item",
+      "steps": [
+       "Open the item",
+       "**Photos & documents** → **＋ Add** the manual (PDF or photo)",
+       "Hold the file → **Mark as the manual** → **Save**",
+       "**Open the manual — …** now heads the item; phones keep a copy, so it opens without a connection"
+      ],
+      "note": "One manual per item: marking another moves the mark."
+     },
+     {
       "t": "Record a replacement",
       "steps": [
        "Open the item",
@@ -621,6 +631,17 @@ export const MANUAL_STEPS: StepGroup[] = [
        "No label printer: an A4 sheet of labels, or a PDF"
       ],
       "note": "Wet or outside: synthetic (polypropylene) labels, and keep spares to reprint — the code never changes. Another make of printer: **Save as image (600 dpi)** and print it from that printer’s own app at the label’s size."
+     },
+     {
+      "t": "A label that opens the manual (crane cab, engine room)",
+      "steps": [
+       "Mark the item’s manual first (**Photos & documents**)",
+       "Open the item → **Print a label that opens the manual**",
+       "The label reads **MANUAL - scan to open**; the app’s scanner opens the manual at once",
+       "With NFC: **Write tag — opens the manual** — a tap does the same"
+      ],
+      "note": "The item’s own label still opens its card — that is the scan before signing.",
+      "who": "officers"
      },
      {
       "t": "Set up the Bluetooth printer",
@@ -1047,6 +1068,60 @@ export const MANUAL_STEPS: StepGroup[] = [
        "Each wristband or crew card marks its holder into the boat — or back aboard"
       ],
       "note": "Persons on board stay right: a crossing by boat is a gangway crossing."
+     }
+    ]
+   },
+   {
+    "id": "musterlist",
+    "title": "Muster list",
+    "path": [
+     "☰ Menu",
+     "Safety",
+     "Muster list"
+    ],
+    "who": "everyone",
+    "perVessel": true,
+    "intro": "Who does what at fire, abandon ship, man overboard, oil spill and each ISPS security level — kept by position, the person assigned. The Master issues it as a revision; everyone reads their own duties.",
+    "acts": [
+     {
+      "t": "See my duties at an alarm",
+      "steps": [
+       "**☰ Menu** → **Crew** → **My documents** → **My duties at alarms**",
+       "Or **Muster list** → the alarm (**Fire**, **Abandon ship**, **Man overboard**, **Oil spill (SOPEP)**, **Security**)"
+      ]
+     },
+     {
+      "t": "Make the first muster list",
+      "steps": [
+       "**Muster list** → **Start from the standard list**",
+       "**Positions** → **Fill from the crew list** — people put in by rank",
+       "Tap a position: number, name, **Who holds it**, **Who stands in for them**",
+       "Each alarm → tap a position → **Station**, **Duty**, the area; the **Signal** at the top",
+       "**Areas** — rename or **+ Area** (spaces, boats and rafts, stations)",
+       "**What changed** → **Issue as revision 1** (tap twice)"
+      ],
+      "note": "The standard list is a start for a yacht of about ten: change it to your SMS and fire plan.",
+      "who": "master"
+     },
+     {
+      "t": "Change it after a crew change",
+      "steps": [
+       "**Muster list** → **Edit the list**",
+       "**Positions** → tap the post → choose who holds it now",
+       "**What changed** — e.g. J. Smith signed on as Deckhand 2",
+       "**Issue as revision N**"
+      ],
+      "note": "An issued revision never changes; the old ones stay. Officers see when the list no longer matches the crew, the Master on the Board.",
+      "who": "master"
+     },
+     {
+      "t": "Print it for the stations",
+      "steps": [
+       "**Muster list** → the alarm → **PDF — Fire** (or the one shown)",
+       "Or **PDF — the whole list** — posts, signals, areas and every alarm",
+       "Sign and stamp; post it at the muster stations, on the bridge and in the engine room"
+      ],
+      "note": "Security prints a table per ISPS level."
      }
     ]
    },

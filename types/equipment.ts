@@ -43,6 +43,8 @@ export interface Attachment {
   uri: string; // persisted file path in the app's document directory
   name?: string;
   addedAt: number;
+  /** The item's manual (services/manuals.ts): one per item, opened by a manual label or tag. */
+  manual?: boolean;
 }
 
 export interface EquipmentItem {

@@ -124,8 +124,8 @@ export async function enqueueInspection(vessel: string, insp: Pick<Inspection, '
   await save(list);
 }
 
-/** Is the current connection one we are willing to spend? */
-async function allowed(policy: UploadPolicy): Promise<FlushResult['skipped'] | null> {
+/** Is the current connection one we are willing to spend? Also keeps manuals (services/attachments keepManuals). */
+export async function allowed(policy: UploadPolicy): Promise<FlushResult['skipped'] | null> {
   if (policy === 'never') return 'policy';
   const state = await NetInfo.fetch();
   if (!state.isConnected) return 'offline';

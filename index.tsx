@@ -163,6 +163,7 @@ import ChatSc from './screens/ChatSc';
 import GaPlanSc from './screens/GaPlanSc';
 import MusterSc from './screens/MusterSc';
 import ImoSignsSc from './screens/ImoSignsSc';
+import StationBillSc from './screens/StationBillSc';
 import NfcPersonSc from './screens/NfcPersonSc';
 import NfcBatchSc from './screens/NfcBatchSc';
 import { NfcListener } from './components/NfcListener';
@@ -311,6 +312,7 @@ const SCREEN_MODULES: Record<string, ModuleKey[]> = {
   GaPlan: ['gaPlan'],
   Muster: ['muster'],
   ImoSigns: ['imoSigns'],
+  StationBill: ['stationBill'],
   NfcPerson: ['nfc'],
   NfcBatch: ['nfc'],
   Emissions: ['emissions'],
@@ -409,7 +411,7 @@ function MainTabs() {
   // Crew list (FAL Form 5, import) and the crew matrix — Officers and the Master
   // keep them, but everyone may look; the screens say what each rank can do.
   // Chat is for everyone aboard: in the menu whenever the module is on (services/chat).
-  const menuExtras = [...(moduleListed('chat') ? ['Chat'] : []), ...(moduleListed('gaPlan') ? ['GaPlan'] : []), ...(moduleListed('muster') ? ['Muster'] : []), ...(moduleListed('imoSigns') ? ['ImoSigns'] : []), ...(moduleOn('crewCerts') ? ['Crew', 'CrewMatrix', ...(moduleListed('myDocs') ? ['MyDocs'] : [])] : [])];
+  const menuExtras = [...(moduleListed('chat') ? ['Chat'] : []), ...(moduleListed('gaPlan') ? ['GaPlan'] : []), ...(moduleListed('muster') ? ['Muster'] : []), ...(moduleListed('stationBill') && moduleOn('crewCerts') ? ['StationBill'] : []), ...(moduleListed('imoSigns') ? ['ImoSigns'] : []), ...(moduleOn('crewCerts') ? ['Crew', 'CrewMatrix', ...(moduleListed('myDocs') ? ['MyDocs'] : [])] : [])];
   const available = useMemo(() => [...tabOrder, ...menuExtras], [tabOrder.join('|'), menuExtras.join('|')]); // eslint-disable-line react-hooks/exhaustive-deps
   const navPrefs = useNavPrefs(available);
   const many = tabOrder.length > FEW;
@@ -501,7 +503,7 @@ function MainTabs() {
                   <NavMenuBar
                     {...p}
                     {...navPrefs}
-                    icons={{ ...TAB_ICONS, Crew: 'clipboard-account-outline', CrewMatrix: 'table-account', MyDocs: 'card-account-details-outline', Chat: 'chat-outline', GaPlan: 'floor-plan', Muster: 'account-multiple-check-outline', ImoSigns: 'sign-direction' }}
+                    icons={{ ...TAB_ICONS, Crew: 'clipboard-account-outline', CrewMatrix: 'table-account', MyDocs: 'card-account-details-outline', Chat: 'chat-outline', GaPlan: 'floor-plan', Muster: 'account-multiple-check-outline', StationBill: 'clipboard-list-outline', ImoSigns: 'sign-direction' }}
                     labelOf={(r) => MENU_LABEL[r] ?? r}
                   />
                 )
@@ -660,6 +662,7 @@ const linking = {
       GaPlan: 'ship-plan',
       Muster: 'muster',
       ImoSigns: 'imo-signs',
+      StationBill: 'muster-list',
       NfcPerson: 'band/:ref',
       Emissions: 'emissions',
       EmPassage: 'em-passage/:id',
@@ -863,7 +866,8 @@ function Root() {
         // The phone's own camera read the label and opened this link — a scan,
         // for "scan before you sign", recorded as such on the inspection.
         if (found) recordScanProof(found.id, 'qr-link');
-        if (found) navigationRef.navigate('ItemDetail', { category: found.category, id: found.id });
+        // A manual label opens the same card, which opens the manual (services/manuals).
+        if (found) navigationRef.navigate('ItemDetail', { category: found.category, id: found.id, ...(pendingLink.type === 'manual' ? { manual: 1 } : {}) });
         else navigationRef.navigate('Scan');
       }
       setPendingLink(null);
@@ -951,6 +955,7 @@ function Root() {
         <Stack.Screen name="GaPlan" component={gated('GaPlan', GaPlanSc)} options={webHeader(t('ga.title'))} />
         <Stack.Screen name="Muster" component={gated('Muster', MusterSc)} options={webHeader(t('mu.title'))} />
         <Stack.Screen name="ImoSigns" component={gated('ImoSigns', ImoSignsSc)} options={webHeader(t('sg.title'))} />
+        <Stack.Screen name="StationBill" component={gated('StationBill', StationBillSc)} options={webHeader(t('sb.title'))} />
         <Stack.Screen name="NfcPerson" component={gated('NfcPerson', NfcPersonSc)} options={{ presentation: 'modal' }} />
         <Stack.Screen name="NfcBatch" component={gated('NfcBatch', NfcBatchSc)} options={{ presentation: 'modal' }} />
         <Stack.Screen name="Emissions" component={gated('Emissions', EmissionsSc)} options={{ presentation: 'modal' }} />

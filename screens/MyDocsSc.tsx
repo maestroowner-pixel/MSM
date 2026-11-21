@@ -15,6 +15,7 @@ import { useData } from '../contexts/DataContext';
 import { useSync } from '../contexts/SyncContext';
 import { personName } from '../types/role';
 import { findMe, MyChange, myCerts, myChanges, myDrills, myRest } from '../services/myDocs';
+import { MyDuties } from '../components/MyDuties';
 import { MySdm, sdmDiffs, toMySdm } from '../services/mySdm';
 import { parseSdm } from '../services/sdmImport';
 import { pickSdmFile } from '../services/crewListReport';
@@ -106,6 +107,9 @@ export default function MyDocsSc() {
           {changes.map((c) => <Text key={`${c.kind}${c.id}`} style={styles.sub}>{`${c.kind === 'cert' ? c.title : t('my.details')} · ${uiDate(new Date(c.at).toISOString().slice(0, 10))}`}</Text>)}
         </Card>
       ) : null}
+
+      {/* What to do at an alarm comes first: it is the line that matters at 3 a.m. */}
+      <MyDuties id={m.id} name={m.name} own />
 
       <Label>{t('my.trip')}</Label>
       <Card>

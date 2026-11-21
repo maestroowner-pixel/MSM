@@ -501,6 +501,17 @@ await t(false, '…written once', setDoc(R(crew, 'sign_checks', 'sc1'), { ...SC,
 await t(false, '…and not empty', setDoc(R(crew, 'sign_checks', 'sc2'), { ...SC, id: 'sc2', looks: [] }));
 await t(true, 'The office reads the rounds', getDoc(R(shore, 'sign_checks', 'sc1')));
 
+// The muster list (types/stationBill.ts): the Master issues a revision whole; everyone reads; nothing changes.
+const SB = { id: 'sb_r1', rev: 1, rows: [{ id: 'sb_std_1', no: 1, position: 'Master', crewId: 'c1', name: 'Max', duties: { fire: { duty: 'In command', station: 'Bridge' } } }], zones: [{ id: 'z_bridge', name: 'Bridge', kind: 'space' }], signals: { fire: 'Fire alarm' }, issuedAt: 1, issuedBy: 'Max', updatedAt: 1 };
+await t(false, 'An officer cannot issue the muster list', setDoc(R(officer, 'station_bills', 'sb_r1'), SB));
+await t(true, 'The Master issues the muster list', setDoc(R(master, 'station_bills', 'sb_r1'), SB));
+await t(false, '…the id names the revision', setDoc(R(master, 'station_bills', 'sb_r7'), { ...SB, id: 'sb_r7', rev: 2 }));
+await t(false, '…with at least one position', setDoc(R(master, 'station_bills', 'sb_r2'), { ...SB, id: 'sb_r2', rev: 2, rows: [] }));
+await t(false, 'An issued revision never changes', setDoc(R(master, 'station_bills', 'sb_r1'), { ...SB, issuedBy: 'Other', updatedAt: 2 }));
+await t(false, 'Nobody deletes a revision', deleteDoc(R(master, 'station_bills', 'sb_r1')));
+await t(true, 'Crew reads their duties', getDoc(R(crew, 'station_bills', 'sb_r1')));
+await t(true, 'The office reads the muster list', getDoc(R(shore, 'station_bills', 'sb_r1')));
+
 // Crane operator's log (types/craneLog.ts): an officer confirms; nothing changes.
 const CRL = { id: 'cl1', itemId: 'k1', crane: { label: 'Crane No. 1', swl: '12 t' }, crewId: 'c1', name: 'Max', date: '2026-11-13', hours: 2.5, lifts: 14, ops: ['cargo'], by: 'Chief Officer', at: 1, createdAt: 1, updatedAt: 1 };
 await t(false, 'Crew cannot confirm crane time', setDoc(R(crew, 'crane_log', 'cl1'), CRL));

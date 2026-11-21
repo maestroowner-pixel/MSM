@@ -11,6 +11,7 @@
 // Nothing with the module off, in a browser, or in a build without NFC.
 // ===================================
 
+import { parseManualQr } from '../services/crewQr';
 import { useEffect, useRef } from 'react';
 import { Alert, AppState, Platform } from 'react-native';
 
@@ -64,7 +65,7 @@ export function NfcListener({ navigate }: { navigate: (route: string, params?: o
           else {
             recordScanProof(item.id, 'nfc');
             void scanRef.current(item.id);
-            navRef.current('ItemDetail', { category: item.category, id: item.id });
+            navRef.current('ItemDetail', { category: item.category, id: item.id, ...(parseManualQr(r.code) ? { manual: 1 } : {}) });
           }
         }
         // The same wristband is still on the phone for a moment: let it go.

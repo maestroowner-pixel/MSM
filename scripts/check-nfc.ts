@@ -12,6 +12,8 @@ import { ru } from '../constants/i18n/ru';
 import { uk } from '../constants/i18n/uk';
 import { MODULES } from '../constants/modules';
 import { readFileSync } from 'fs';
+import { manualQrPayload, parseManualQr } from '../services/crewQr';
+import { manualOf, markManual, remoteManuals } from '../services/manuals';
 
 let fail = 0;
 const ok = (c: boolean, m: string) => { if (!c) { fail++; console.log('✗', m); } else console.log('✓', m); };
@@ -55,6 +57,22 @@ ok(!resolveTap('04E0E0E0E0E0E0', 'msm://item/liferafts_ab3', eq).ok, '…another
 ok((resolveTap('04E0E0E0E0E0E0', 'msm://crew/liferafts_Ab3', eq) as any).why === 'mismatch', '…and a person\'s words on it are refused');
 ok(issueTag(eq, '04E1E1E1E1E1E1', 'item', 'liferafts_Ab3', '3 · Liferaft 12p', 'C/O', 401)[1].revokedAt === 401, 'a new tag on the same item revokes the old');
 // A watch or a door card registered as is: a 4-byte UID, no words on the chip.
+// ---- an item's manual (services/manuals): the same tag, written with the manual's words ----
+ok(parseManualQr(manualQrPayload('liferafts_Ab3')) === 'liferafts_Ab3' && parseManualQr('MSM://Manual/x') === 'x' && parseManualQr('msm://item/x') === null, 'a manual label reads back as its item; an item label is not one');
+const viaManual = resolveTap('04E0E0E0E0E0E0', 'msm://manual/liferafts_Ab3', eq);
+ok(viaManual.ok && viaManual.code === 'msm://manual/liferafts_Ab3', 'an item tag written with the manual: accepted, and the tap opens the manual');
+ok(!resolveTap('04E0E0E0E0E0E0', 'msm://manual/other_item', eq).ok, 'the manual of another item on that chip: refused as rewritten');
+ok(!resolveTap('04E0E0E0E0E0E0', 'msm://manual/c1', tags).ok, 'manual words on a wristband: refused');
+const atts = [
+  { id: 'a1', kind: 'document' as const, uri: 'file:///x/manual.pdf', name: 'Crane manual.pdf', addedAt: 1 },
+  { id: 'a2', kind: 'document' as const, uri: 'https://firebasestorage.googleapis.com/v0/b/x/o/y?alt=media', name: 'Wiring.pdf', addedAt: 2 },
+];
+const m1 = markManual(atts, 'a1');
+const m2 = markManual(m1, 'a2');
+ok(manualOf({ attachments: m1 })?.id === 'a1' && manualOf({ attachments: m2 })?.id === 'a2' && m2.filter((a) => a.manual).length === 1, 'one manual per item: marking another moves the mark');
+ok(!markManual(m2, null).some((a) => 'manual' in a) && markManual(atts, null)[0] === atts[0], 'unmarked leaves no field behind; an untouched file stays the same object');
+ok(remoteManuals([{ attachments: m1 }, { attachments: m2 }, {}]).map((a) => a.id).join() === 'a2', 'a phone keeps copies only of manuals that live in the cloud');
+
 const watch = issueTag([], 'a1:b2:c3:d4', 'person', 'c3', 'Tom Hall', 'Chief Officer', 500);
 ok(watch[0].id === 'tag_A1B2C3D4' && resolveTap('A1B2C3D4', null, watch).ok && (resolveTap('a1b2c3d4', null, watch) as any).code === 'msm://crew/c3', 'a watch registered as is (4-byte UID, no words) opens as its person');
 const back = revokeTag(tags[0], 'Master', 400);

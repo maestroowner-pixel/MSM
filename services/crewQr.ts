@@ -22,6 +22,22 @@ export function parseItemQr(payload: string): string | null {
   return id || null;
 }
 
+/**
+ * A manual label (21 Nov 2026): the same item, but scanned (or tapped as a tag) it
+ * opens the item's manual straight away — for a crane cabin or an engine room
+ * panel. The item's own label still opens the card: that is the scan before signing.
+ */
+export const MANUAL_QR_SCHEME = 'msm://manual/';
+export function manualQrPayload(id: string): string {
+  return `${MANUAL_QR_SCHEME}${id}`;
+}
+export function parseManualQr(payload: string): string | null {
+  const s = payload.trim();
+  if (s.length <= MANUAL_QR_SCHEME.length) return null;
+  if (s.slice(0, MANUAL_QR_SCHEME.length).toLowerCase() !== MANUAL_QR_SCHEME) return null;
+  return s.slice(MANUAL_QR_SCHEME.length).trim() || null;
+}
+
 /** The QR on a crew card — scanned at the gangway going ashore and coming back. */
 export const CREW_QR_SCHEME = 'msm://crew/';
 export function crewQrPayload(id: string): string {

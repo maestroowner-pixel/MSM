@@ -5,7 +5,7 @@
 // ===================================
 
 import { NfcTag, NfcTagKind } from '../types/nfc';
-import { checkpointQrPayload, crewQrPayload, itemQrPayload, musterQrPayload, parseCheckpointQr, parseCrewQr, parseItemQr, parseMusterQr } from './crewQr';
+import { checkpointQrPayload, crewQrPayload, itemQrPayload, manualQrPayload, musterQrPayload, parseCheckpointQr, parseCrewQr, parseItemQr, parseManualQr, parseMusterQr } from './crewQr';
 import { isPassengerId } from '../types/passengers';
 import { maskName } from '../utils/privacy';
 
@@ -21,7 +21,10 @@ export function payloadFor(kind: NfcTagKind, ref: string): string {
   return kind === 'person' ? crewQrPayload(ref) : kind === 'checkpoint' ? checkpointQrPayload(ref) : kind === 'item' ? itemQrPayload(ref) : musterQrPayload(ref);
 }
 
-function parsePayload(p: string): { kind: NfcTagKind; ref: string } | null {
+/** An item's tag may carry the manual's words instead (msm://manual/<id>): the same item, it opens the manual. */
+function parsePayload(p: string): { kind: NfcTagKind; ref: string; manual?: true } | null {
+  const man = parseManualQr(p);
+  if (man) return { kind: 'item', ref: man, manual: true };
   const crew = parseCrewQr(p);
   if (crew) return { kind: 'person', ref: crew };
   const cp = parseCheckpointQr(p);
@@ -51,7 +54,7 @@ export function resolveTap(uid: string, payload: string | null | undefined, tags
   if (tag.revokedAt) return { ok: false, why: 'revoked', tag };
   const said = payload ? parsePayload(payload) : null;
   if (payload && (!said || said.kind !== tag.kind || said.ref !== tag.ref)) return { ok: false, why: 'mismatch', tag };
-  return { ok: true, tag, code: payloadFor(tag.kind, tag.ref) };
+  return { ok: true, tag, code: said?.manual ? manualQrPayload(tag.ref) : payloadFor(tag.kind, tag.ref) };
 }
 
 /** The tag in force for a person or a place. */

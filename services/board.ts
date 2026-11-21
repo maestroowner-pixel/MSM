@@ -69,6 +69,7 @@ import { findMe, myCerts, myChanges } from './myDocs';
 import { planBreaches } from './restPlan';
 import { chemBoard } from './chemicals';
 import { letterBoard } from './correspondence';
+import { billGaps, currentBill } from './stationBill';
 import { orderBoard } from './orderBook';
 import { wireBoard } from './wireLog';
 import { LIFTING_KEYS } from '../constants/lifting';
@@ -166,6 +167,8 @@ export interface BoardInput {
   certificates: Certificate[];
   inspections: Inspection[];
   crew: CrewMember[];
+  /** The muster list's revisions (types/stationBill.ts). */
+  stationBills?: import('../types/stationBill').StationBill[];
   crewPrivate: CrewPrivate[];
   machines: Machine[];
   pmsJobs: PmsJob[];
@@ -448,6 +451,14 @@ export function buildBoard(x: BoardInput): Board {
     for (const o of (x.purchaseOrders ?? []).filter((o) => !o.deleted && (o.status === 'sent' || o.status === 'partial') && o.award)) {
       const q = o.quotes?.find((y) => y.id === o.award!.quoteId);
       if (q?.confirm && !q.confirm.ok) n.push({ key: `po:noconf:${o.id}`, level: 'amber', who: 'officer', icon: 'truck-delivery-outline', route: 'Order', params: { id: o.id }, title: `${t('b.po.noConfirm', { name: q.supplier })} — ${o.no}`, sub: q.confirm.note });
+    }
+  }
+
+  // ---- The muster list no longer matches the crew (SOLAS III/37.2: revise it when the crew changes) ----
+  if (x.on('stationBill') && x.on('crewCerts') && x.stationBills?.length) {
+    const g = billGaps(currentBill(x.stationBills), x.crew);
+    if (g.notOnList.length || g.gone.length || g.unfilled.length) {
+      n.push({ key: 'sb:gaps', level: 'amber', who: 'master', icon: 'clipboard-list-outline', route: 'StationBill', title: t('b.sb.gaps'), sub: t('b.sb.gapsSub', { a: g.notOnList.length, b: g.gone.length, c: g.unfilled.length }) });
     }
   }
 

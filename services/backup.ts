@@ -139,6 +139,8 @@ export interface BackupFile {
   nfcTags?: import('../types/nfc').NfcTag[];
   /** Muster stations, musters and marks (types/muster.ts). */
   muster?: { stations: import('../types/muster').MusterStation[]; musters: import('../types/muster').Muster[]; marks: import('../types/muster').MusterMark[] };
+  /** The muster list's revisions (types/stationBill.ts). */
+  stationBills?: import('../types/stationBill').StationBill[];
   /** Rope and wire log (types/wireLog.ts). */
   wireLog?: import('../types/wireLog').WireEntry[];
   /** Crane operator's log (types/craneLog.ts). */
@@ -317,6 +319,7 @@ export async function exportBackup(vessel: VesselInfo | null, password = ''): Pr
   const imoSigns = { places: await storage.loadList<import('../types/imoSigns').SignPlace>(storage.SIGN_PLACES_KEY), checks: await storage.loadList<import('../types/imoSigns').SignCheck>(storage.SIGN_CHECKS_KEY) };
   const nfcTags = await storage.loadList<import('../types/nfc').NfcTag>(storage.NFC_TAGS_KEY);
   const muster = { stations: await storage.loadList<import('../types/muster').MusterStation>(storage.MUSTER_STATIONS_KEY), musters: await storage.loadList<import('../types/muster').Muster>(storage.MUSTERS_KEY), marks: await storage.loadList<import('../types/muster').MusterMark>(storage.MUSTER_MARKS_KEY) };
+  const stationBills = await storage.loadList<import('../types/stationBill').StationBill>(storage.STATION_BILLS_KEY);
   const wireLog = await storage.loadList<import('../types/wireLog').WireEntry>(storage.WIRE_LOG_KEY);
   const craneLog = await storage.loadList<import('../types/craneLog').CraneEntry>(storage.CRANE_LOG_KEY);
   const craneTests = await storage.loadList<import('../types/craneLog').CraneTest>(storage.CRANE_TESTS_KEY);
@@ -393,6 +396,7 @@ export async function exportBackup(vessel: VesselInfo | null, password = ''): Pr
     ...(imoSigns.places.length || imoSigns.checks.length ? { imoSigns } : {}),
     ...(nfcTags.length ? { nfcTags } : {}),
     ...(muster.stations.length || muster.musters.length ? { muster } : {}),
+    ...(stationBills.length ? { stationBills } : {}),
     ...(wireLog.length ? { wireLog } : {}),
     ...(craneLog.length ? { craneLog } : {}),
     ...(craneTests.length ? { craneTests } : {}),
@@ -692,6 +696,7 @@ export async function restoreBackup(backup: BackupFile): Promise<void> {
     await storage.saveList(storage.MUSTERS_KEY, backup.muster.musters);
     await storage.saveList(storage.MUSTER_MARKS_KEY, backup.muster.marks);
   }
+  if (backup.stationBills) await storage.saveList(storage.STATION_BILLS_KEY, backup.stationBills);
   if (backup.wireLog) await storage.saveList(storage.WIRE_LOG_KEY, backup.wireLog);
   if (backup.craneLog) await storage.saveList(storage.CRANE_LOG_KEY, backup.craneLog);
   if (backup.craneTests) await storage.saveList(storage.CRANE_TESTS_KEY, backup.craneTests);

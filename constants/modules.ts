@@ -25,7 +25,7 @@
 // every vessel here, or for one pilot vessel (see `setVesselModules` below).
 // ===================================
 
-export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast' | 'fuelChange' | 'ods' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'meetings' | 'stores' | 'ai' | 'searches' | 'ssp' | 'readiness' | 'serviceReport' | 'dp' | 'dpEditor' | 'patrols' | 'keys' | 'watchChecks' | 'orders' | 'deckLog' | 'watchLog' | 'gmdss' | 'i18n' | 'finance' | 'suppliers' | 'oil' | 'yard' | 'api' | 'officeCheck' | 'extInsp' | 'critEq' | 'poApproval' | 'moc' | 'appraisals' | 'restPlan' | 'daTests' | 'threads' | 'emissions' | 'myDocs' | 'mySdm' | 'chem' | 'wires' | 'quoteLink' | 'craneLog' | 'letters' | 'orderBook' | 'chat' | 'gaPlan' | 'nfc' | 'muster' | 'imoSigns';
+export type ModuleKey = 'lifting' | 'crewCerts' | 'rest' | 'pms' | 'access' | 'spares' | 'signConfirm' | 'docs' | 'fleet' | 'ptw' | 'fuel' | 'garbage' | 'sopep' | 'security' | 'surveys' | 'board' | 'orb' | 'sewage' | 'ballast' | 'fuelChange' | 'ods' | 'rounds' | 'qhse' | 'drills' | 'hospital' | 'passengers' | 'meetings' | 'stores' | 'ai' | 'searches' | 'ssp' | 'readiness' | 'serviceReport' | 'dp' | 'dpEditor' | 'patrols' | 'keys' | 'watchChecks' | 'orders' | 'deckLog' | 'watchLog' | 'gmdss' | 'i18n' | 'finance' | 'suppliers' | 'oil' | 'yard' | 'api' | 'officeCheck' | 'extInsp' | 'critEq' | 'poApproval' | 'moc' | 'appraisals' | 'restPlan' | 'daTests' | 'threads' | 'emissions' | 'myDocs' | 'mySdm' | 'chem' | 'wires' | 'quoteLink' | 'craneLog' | 'letters' | 'orderBook' | 'chat' | 'gaPlan' | 'nfc' | 'muster' | 'imoSigns' | 'stationBill';
 
 export const MODULES: Record<ModuleKey, boolean> = {
   /**
@@ -414,6 +414,14 @@ export const MODULES: Record<ModuleKey, boolean> = {
    * (sign_places, sign_checks).
    */
   imoSigns: false,
+  /**
+   * The muster list (types/stationBill.ts, 21 Nov 2026): by POSITION — each billet's duties at
+   * fire, abandon ship, man overboard, oil spill and at each ISPS security level, the areas of
+   * responsibility, the signals; the person holding it assigned from the crew list. Issued whole
+   * by the Master as a revision; printed per alarm; each person sees their own duties. Needs
+   * `crewCerts` (the crew list) and `npm run deploy:rules` first (station_bills).
+   */
+  stationBill: false,
 };
 
 // ---- per-vessel release (15 Oct 2026) --------------------------------------

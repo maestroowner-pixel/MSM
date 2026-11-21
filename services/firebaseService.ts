@@ -1325,6 +1325,8 @@ const SYNCED_LISTS: (SyncedList & { module: ModuleKey; officers?: boolean })[] =
   { sub: 'muster_stations', key: storage.MUSTER_STATIONS_KEY, module: 'muster' },
   { sub: 'musters', key: storage.MUSTERS_KEY, module: 'muster' },
   { sub: 'muster_marks', key: storage.MUSTER_MARKS_KEY, appendOnly: true, module: 'muster' },
+  // The muster list: a revision is issued whole by the Master and never changed; everyone reads their duties.
+  { sub: 'station_bills', key: storage.STATION_BILLS_KEY, appendOnly: true, module: 'stationBill' },
   // Rope and wire log: signed entries, never changed.
   { sub: 'wire_log', key: storage.WIRE_LOG_KEY, appendOnly: true, module: 'wires' },
   // Crane operator's log: signed entries, never changed (a mistake is voided by a new one).

@@ -283,6 +283,8 @@ const en: ManualContent = {
         'Tap the dashed ＋ Add slot to take a photo, pick from the library, or choose a document.',
         'Tap a photo to open it full-screen (Open / Share); tap a document to open it in the system viewer.',
         'Long-press any attachment for its edit menu — Download / Share, Rename, Replace or Delete.',
+        'The manual: long-press the file → Mark as the manual (then Save). One per item; marking another moves the mark. "Open the manual — …" then stands at the top of the item, and phones keep a copy of every marked manual on the device, so it opens with no connection (copies are fetched on a connection the vessel is willing to spend — the same setting as photo uploads).',
+        'A label that opens the manual — for a crane cab or an engine room panel: on the item, Print a label that opens the manual. It reads "MANUAL - scan to open"; scanned with the app (or the phone camera on a phone with the app), it opens the manual at once. With NFC tags, Write tag — opens the manual does the same with a tap. The item\'s own label still opens its card, and both count as the scan before signing.',
       ],
     },
     {
@@ -615,6 +617,18 @@ const en: ManualContent = {
         "Each station leader chooses My station — or taps the station's tag — and marks every person who arrives: their wristband tapped on the phone, their crew card scanned, or their name pressed in the Missing list. Every phone shows the same count as the marks sync: accounted for of the total, who is still missing, and per station who is there and who of theirs is not. The first mark stands: a second tap, at the same station or another, only says where they were marked. Someone who was ashore when the alarm sounded is not counted — the bridge decides about them.",
         "An officer closes the muster; with anyone still missing, the reason must be written (where they were found). Past musters lists each one with how many were accounted for and how long it took; PDF and Share PDF print who was marked where, when and how, and who was missing — for the drill record.",
         "Boat landing (Security → Gangway, when the vessel has it): when the tender takes people ashore from a landing that is not the gangway, the watch there names the boat (Tender 1) and opens the landing. Each wristband or crew card is a crossing like at the gangway — into the boat, or back aboard — with the boat's name on it, so the persons on board stay right; the gangway page lists who is still out in which boat.",
+      ],
+    },
+    {
+      emoji: '📋',
+      title: "Muster list",
+      body: [
+        "Muster list (menu → Safety → Muster list): who does what at every alarm — fire, abandon ship, man overboard, oil spill (SOPEP) and security at ISPS levels 1, 2 and 3. It is kept by POSITION: each line is a numbered post (\"3 — 2nd Officer\") with its station, its duty and its area of responsibility at each alarm, and the person who holds it. A crew change moves a name; the duties stay with the post.",
+        "Reading it: Positions shows who holds each post and who stands in for them; each alarm's page shows its signal and every post's station, duty and area; Areas lists the areas of responsibility — spaces to search or keep, boats and rafts, stations. Everyone aboard reads it, and sees their own lines on My documents (\"My duties at alarms\") and on their crew card.",
+        "The Master edits it: Edit the list opens a draft on this device, from the revision in force (or, the first time, from a standard list for a yacht of about ten — a start to be changed to the vessel's SMS and fire plan). On Positions: the number, the name of the post, who holds it (from those aboard), who stands in; Fill from the crew list puts people in by rank; + Position adds one. On each alarm: tap a post to write its station and duty and pick its area; the signal is at the top. Areas: add, rename, choose the kind. The draft waits on this device until it is issued.",
+        "Issue as revision N: with a note of what changed, the draft becomes the list in force for everyone. An issued revision never changes — the next change, a crew change included, is a new revision (SOLAS III/37.2). Earlier revisions stay, so the list in force on the day of a drill or an inspection can be printed.",
+        "Out of date: when someone aboard is not on the list, someone on it has signed off, or a post has no one, officers see it at the top of the list and the Master on the Board.",
+        "Paper: on an alarm's page, PDF — that alarm (for posting at the station: the signal and every post's duty; security has a table per level); PDF — the whole list prints the posts, the signals, the areas and every alarm, with a line for the Master's signature and the ship's stamp. English, like every paper.",
       ],
     },
     {
@@ -1599,6 +1613,18 @@ const ru: ManualContent = {
       ],
     },
     {
+      emoji: '📋',
+      title: "Расписание по тревогам (Muster list)",
+      body: [
+        "Расписание по тревогам (меню → Безопасность → Расписание по тревогам): кто что делает при каждой тревоге — пожар, оставление судна, человек за бортом, разлив нефти (SOPEP) и охрана на уровнях ISPS 1, 2 и 3. Ведётся по ДОЛЖНОСТЯМ: каждая строка — пронумерованная должность («3 — 2nd Officer») с местом, обязанностью и зоной ответственности по каждой тревоге и человеком, который её занимает. При смене экипажа меняется фамилия, обязанности остаются за должностью.",
+        "Просмотр: «Должности» — кто занимает каждую и кто замещает; страница каждой тревоги — её сигнал и место, обязанность и зона каждой должности; «Зоны» — зоны ответственности: помещения для осмотра или охраны, шлюпки и плоты, посты. Читают все на борту; свои строки каждый видит в «Мои документы» («Мои обязанности по тревогам») и в своей карточке экипажа.",
+        "Правит капитан: «Править расписание» открывает черновик на этом устройстве из действующей ревизии (или, в первый раз, из стандартного расписания для яхты примерно на десять человек — это заготовка, её нужно привести к SMS и пожарному плану судна). На «Должностях»: номер, название, кто занимает (из тех, кто на борту), кто замещает; «Заполнить из списка экипажа» расставляет людей по званию; «+ Должность» добавляет строку. На каждой тревоге: нажмите должность, впишите место и обязанность, выберите зону; сигнал — вверху. «Зоны»: добавить, переименовать, выбрать вид. Черновик ждёт на этом устройстве, пока его не выпустят.",
+        "«Выпустить как ревизию N»: с пометкой, что изменилось, черновик становится действующим расписанием для всех. Выпущенная ревизия не меняется — следующее изменение, в том числе смена экипажа, будет новой ревизией (SOLAS III/37.2). Прежние ревизии сохраняются, так что можно распечатать расписание, действовавшее в день учения или проверки.",
+        "Устарело: если кто-то на борту не внесён в расписание, кто-то из внесённых списан или на должность никто не назначен — офицеры видят это вверху расписания, капитан — на Board.",
+        "Печать: на странице тревоги «PDF — тревога» (вывесить на посту: сигнал и обязанности всех должностей; у охраны — таблица на каждый уровень); «PDF — всё расписание» печатает должности, сигналы, зоны и все тревоги со строкой для подписи капитана и судовой печати. На английском, как все документы.",
+      ],
+    },
+    {
       emoji: '🪧',
       title: "Знаки IMO (IMO signs)",
       body: [
@@ -2577,6 +2603,18 @@ const es: ManualContent = {
         "Cada responsable de puesto elige «My station» — o acerca la etiqueta del puesto — y marca a cada persona que llega: su pulsera en el teléfono, su tarjeta de tripulante escaneada o su nombre pulsado en la lista «Missing». Todos los teléfonos muestran el mismo recuento a medida que se sincronizan: presentes sobre el total, quién falta aún y, por puesto, quién está y quién de los suyos no. La primera marca vale: un segundo toque, en el mismo puesto u otro, solo dice dónde se marcó. Quien estaba en tierra cuando sonó la alarma no se cuenta — lo decide el puente.",
         "Un oficial cierra la reunión; si falta alguien hay que escribir el motivo (dónde se le encontró). «Past musters» lista cada una con cuántos estaban presentes y cuánto tardó; PDF y Share PDF imprimen quién se marcó dónde, cuándo y cómo, y quién faltó — para el registro del ejercicio.",
         "Embarque en el bote (Seguridad → Pasarela, si el buque lo tiene): cuando el tender lleva gente a tierra desde un punto que no es la pasarela, la guardia allí indica el bote (Tender 1) y abre el embarque. Cada pulsera o tarjeta de tripulante es un paso como en la pasarela — al bote o de vuelta a bordo — con el nombre del bote, así las personas a bordo siguen cuadrando; la página de la pasarela muestra quién sigue fuera y en qué bote.",
+      ],
+    },
+    {
+      emoji: '📋',
+      title: "Cuadro de obligaciones",
+      body: [
+        "Cuadro de obligaciones (menú → Seguridad → Cuadro de obligaciones): quién hace qué en cada alarma — incendio, abandono del buque, hombre al agua, derrame de hidrocarburos (SOPEP) y protección en los niveles ISPS 1, 2 y 3. Se lleva por PUESTO: cada línea es un puesto numerado («3 — 2nd Officer») con su lugar, su obligación y su zona de responsabilidad en cada alarma, y la persona que lo ocupa. Un cambio de tripulación mueve un nombre; las obligaciones siguen con el puesto.",
+        "Leerlo: Puestos muestra quién ocupa cada uno y quién le sustituye; la página de cada alarma, su señal y el lugar, obligación y zona de cada puesto; Zonas, las zonas de responsabilidad: espacios que revisar o vigilar, botes y balsas, puestos. Todos a bordo lo leen y ven sus propias líneas en Mis documentos («Mis obligaciones en las alarmas») y en su ficha de tripulante.",
+        "Lo edita el Capitán: Editar el cuadro abre un borrador en este dispositivo a partir de la revisión en vigor (o, la primera vez, de un cuadro estándar para un yate de unas diez personas: un punto de partida que hay que adaptar al SMS y al plan contraincendios del buque). En Puestos: número, nombre del puesto, quién lo ocupa (entre los que están a bordo), quién le sustituye; Rellenar desde la lista de tripulación asigna por categoría; + Puesto añade uno. En cada alarma: toque un puesto, escriba su lugar y obligación y elija su zona; la señal está arriba. Zonas: añadir, renombrar, elegir el tipo. El borrador espera en este dispositivo hasta que se emite.",
+        "Emitir como revisión N: con una nota de lo que cambió, el borrador pasa a ser el cuadro en vigor para todos. Una revisión emitida no cambia: el siguiente cambio, incluido un cambio de tripulación, es una revisión nueva (SOLAS III/37.2). Las revisiones anteriores se conservan, así que puede imprimirse el cuadro vigente el día de un ejercicio o una inspección.",
+        "Desactualizado: si alguien a bordo no está en el cuadro, alguien que figura ha desembarcado o un puesto no tiene a nadie, los oficiales lo ven arriba del cuadro y el Capitán en el Board.",
+        "Papel: en la página de una alarma, PDF — esa alarma (para colocar en el puesto: la señal y la obligación de cada puesto; protección tiene una tabla por nivel); PDF — el cuadro completo imprime los puestos, las señales, las zonas y todas las alarmas, con una línea para la firma del Capitán y el sello del buque. En inglés, como todos los papeles.",
       ],
     },
     {
@@ -3561,6 +3599,18 @@ const uk: ManualContent = {
       ],
     },
     {
+      emoji: '📋',
+      title: "Розклад за тривогами (Muster list)",
+      body: [
+        "Розклад за тривогами (меню → Безпека → Розклад за тривогами): хто що робить за кожної тривоги — пожежа, залишення судна, людина за бортом, розлив нафти (SOPEP) та охорона на рівнях ISPS 1, 2 і 3. Ведеться за ПОСАДАМИ: кожен рядок — пронумерована посада («3 — 2nd Officer») з місцем, обов'язком і зоною відповідальності за кожної тривоги та людиною, яка її обіймає. Під час зміни екіпажу змінюється прізвище, обов'язки лишаються за посадою.",
+        "Перегляд: «Посади» — хто обіймає кожну й хто заміщає; сторінка кожної тривоги — її сигнал і місце, обов'язок та зона кожної посади; «Зони» — зони відповідальності: приміщення для огляду чи охорони, шлюпки й плоти, пости. Читають усі на борту; свої рядки кожен бачить у «Мої документи» («Мої обов'язки за тривогами») і у своїй картці екіпажу.",
+        "Редагує капітан: «Редагувати розклад» відкриває чернетку на цьому пристрої з чинної ревізії (або, вперше, зі стандартного розкладу для яхти приблизно на десять осіб — це заготовка, її треба привести до SMS і пожежного плану судна). На «Посадах»: номер, назва, хто обіймає (з тих, хто на борту), хто заміщає; «Заповнити зі списку екіпажу» розставляє людей за званням; «+ Посада» додає рядок. На кожній тривозі: натисніть посаду, впишіть місце й обов'язок, виберіть зону; сигнал — угорі. «Зони»: додати, перейменувати, вибрати вид. Чернетка чекає на цьому пристрої, доки її не випустять.",
+        "«Випустити як ревізію N»: з позначкою, що змінилося, чернетка стає чинним розкладом для всіх. Випущена ревізія не змінюється — наступна зміна, зокрема зміна екіпажу, буде новою ревізією (SOLAS III/37.2). Попередні ревізії зберігаються, тож можна роздрукувати розклад, чинний у день навчання чи перевірки.",
+        "Застарів: якщо хтось на борту не внесений до розкладу, хтось із внесених списаний або на посаду ніхто не призначений — офіцери бачать це вгорі розкладу, капітан — на Board.",
+        "Друк: на сторінці тривоги «PDF — тривога» (вивісити на посту: сигнал і обов'язки всіх посад; в охорони — таблиця на кожен рівень); «PDF — увесь розклад» друкує посади, сигнали, зони й усі тривоги з рядком для підпису капітана та суднової печатки. Англійською, як усі документи.",
+      ],
+    },
+    {
       emoji: '🪧',
       title: "Знаки IMO (IMO signs)",
       body: [
@@ -4500,6 +4550,18 @@ const no: ManualContent = {
       ],
     },
     {
+      emoji: '📋',
+      title: "Mønstringsliste",
+      body: [
+        "Mønstringsliste (meny → Sikkerhet → Mønstringsliste): hvem gjør hva ved hver alarm — brann, forlate skipet, mann over bord, oljesøl (SOPEP) og sikring på ISPS-nivå 1, 2 og 3. Den føres per STILLING: hver linje er en nummerert stilling («3 — 2nd Officer») med post, oppgave og ansvarsområde ved hver alarm, og personen som har den. Et mannskapsbytte flytter et navn; oppgavene blir hos stillingen.",
+        "Lese den: Stillinger viser hvem som har hver stilling og hvem som trer inn; hver alarms side viser signalet og hver stillings post, oppgave og område; Områder viser ansvarsområdene — rom som skal gjennomsøkes eller vaktes, båter og flåter, poster. Alle om bord leser den, og ser sine egne linjer i Mine dokumenter («Mine oppgaver ved alarm») og på sitt mannskapskort.",
+        "Kapteinen redigerer den: Rediger listen åpner et utkast på denne enheten fra revisjonen som gjelder (eller første gang fra en standardliste for en yacht på rundt ti — et utgangspunkt som må tilpasses fartøyets SMS og brannplan). På Stillinger: nummer, navn på stillingen, hvem som har den (av dem om bord), hvem som trer inn; Fyll fra mannskapslisten setter folk inn etter grad; + Stilling legger til en. På hver alarm: trykk en stilling, skriv post og oppgave og velg område; signalet står øverst. Områder: legg til, gi nytt navn, velg type. Utkastet venter på denne enheten til det utstedes.",
+        "Utsted som revisjon N: med en merknad om hva som er endret blir utkastet listen som gjelder for alle. En utstedt revisjon endres aldri — neste endring, også et mannskapsbytte, er en ny revisjon (SOLAS III/37.2). Tidligere revisjoner beholdes, så listen som gjaldt på dagen for en øvelse eller inspeksjon kan skrives ut.",
+        "Utdatert: når noen om bord ikke står på listen, noen på den har mønstret av, eller en stilling er tom, ser offiserene det øverst på listen og kapteinen på Board.",
+        "Papir: på en alarms side, PDF — den alarmen (til oppslag ved posten: signalet og hver stillings oppgave; sikring har en tabell per nivå); PDF — hele listen skriver ut stillingene, signalene, områdene og alle alarmene, med en linje for kapteinens signatur og skipets stempel. På engelsk, som alle papirer.",
+      ],
+    },
+    {
       emoji: '🪧',
       title: "IMO-skilt",
       body: [
@@ -5402,6 +5464,18 @@ const pt: ManualContent = {
       ],
     },
     {
+      emoji: '📋',
+      title: "Rol de chamada",
+      body: [
+        "Rol de chamada (menu → Segurança → Rol de chamada): quem faz o quê em cada alarme — incêndio, abandono do navio, homem ao mar, derrame de hidrocarbonetos (SOPEP) e proteção nos níveis ISPS 1, 2 e 3. É mantido por POSTO: cada linha é um posto numerado («3 — 2nd Officer») com o seu local, a sua função e a sua zona de responsabilidade em cada alarme, e a pessoa que o ocupa. Uma troca de tripulação muda um nome; as funções ficam com o posto.",
+        "Consultar: Postos mostra quem ocupa cada um e quem o substitui; a página de cada alarme mostra o sinal e o local, função e zona de cada posto; Zonas lista as zonas de responsabilidade — espaços a revistar ou vigiar, botes e jangadas, postos. Todos a bordo o leem e veem as suas próprias linhas em Os meus documentos («As minhas funções nos alarmes») e na sua ficha de tripulante.",
+        "O Comandante edita-o: Editar o rol abre um rascunho neste dispositivo a partir da revisão em vigor (ou, da primeira vez, de um rol padrão para um iate de cerca de dez pessoas — um ponto de partida a adaptar ao SMS e ao plano de incêndio do navio). Em Postos: número, nome do posto, quem o ocupa (entre quem está a bordo), quem o substitui; Preencher a partir da lista de tripulantes atribui por categoria; + Posto acrescenta um. Em cada alarme: toque num posto, escreva o local e a função e escolha a zona; o sinal está no topo. Zonas: acrescentar, renomear, escolher o tipo. O rascunho fica neste dispositivo até ser emitido.",
+        "Emitir como revisão N: com uma nota do que mudou, o rascunho passa a ser o rol em vigor para todos. Uma revisão emitida não muda — a próxima alteração, incluindo uma troca de tripulação, é uma nova revisão (SOLAS III/37.2). As revisões anteriores ficam, para se poder imprimir o rol em vigor no dia de um exercício ou de uma inspeção.",
+        "Desatualizado: quando alguém a bordo não está no rol, alguém que consta desembarcou ou um posto não tem ninguém, os oficiais veem-no no topo do rol e o Comandante no Board.",
+        "Papel: na página de um alarme, PDF — esse alarme (para afixar no posto: o sinal e a função de cada posto; a proteção tem uma tabela por nível); PDF — o rol completo imprime os postos, os sinais, as zonas e todos os alarmes, com uma linha para a assinatura do Comandante e o carimbo do navio. Em inglês, como todos os papéis.",
+      ],
+    },
+    {
       emoji: '🪧',
       title: "Sinais IMO",
       body: [
@@ -5818,6 +5892,7 @@ const MODULE_PARTS: { title: string; module: ModuleKey; from?: number; drop?: nu
   { title: 'NFC wristbands and tags', module: 'nfc' },
   { title: 'Muster and boat landing', module: 'muster' },
   { title: 'IMO signs', module: 'imoSigns' },
+  { title: 'Muster list', module: 'stationBill' },
   // Paragraphs of a live section about a page that ships dark (15 Oct 2026).
   { title: 'Security (ISPS)', module: 'searches', drop: [6] },
   { title: 'Security (ISPS)', module: 'ssp', drop: [7] },

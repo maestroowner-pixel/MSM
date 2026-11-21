@@ -41,6 +41,7 @@ import { useSync } from '../contexts/SyncContext';
 import { plansPms, roleAtLeast } from '../types/role';
 import { PlanPinLink } from '../components/PlanPinLink';
 import { NfcTagRow } from '../components/NfcTagRow';
+import { manualOf, markManual } from '../services/manuals';
 import { scanProofFor, signingGate } from '../services/signingPolicy';
 import { t, tk, tn, useT, currentLang, dateLocale } from '../utils/i18n';
 import { shipToday } from '../utils/shipTime';
@@ -105,6 +106,18 @@ export default function ItemDetailSc() {
   };
   const [draft, setDraft] = useState<EquipmentItem>(() => existing ?? blank());
   const isNew = !existing;
+  // The item's manual (services/manuals): as saved — a label, a tag or a scan reach the saved item.
+  const savedManual = manualOf(existing);
+  const openedManual = useRef(false);
+  const openManual = (a: Attachment) => (a.kind === 'photo' ? setPreview(a) : openFile(a.uri, a.name));
+  // Reached by a manual label or tag (msm://manual/<id>): open it at once, once.
+  useEffect(() => {
+    if (!route.params?.manual || openedManual.current || !existing) return;
+    openedManual.current = true;
+    if (savedManual) openManual(savedManual);
+    else Alert.alert(t('imn.title'), t('imn.noneMarked'));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [existing]);
   // A rope, or gear that carries one: its log and its limits (plan item 67).
   const ropeLog = moduleOn('wires') && moduleOn('lifting') && wireApplies(draft, LIFTING_KEYS);
   const [preview, setPreview] = useState<Attachment | null>(null);
@@ -249,6 +262,9 @@ export default function ItemDetailSc() {
   const attachmentMenu = (att: Attachment) => {
     const options = [
       { text: onWeb ? t('it.openDl') : t('it.dlShare'), onPress: () => openFile(att.uri, att.name) },
+      att.manual
+        ? { text: t('imn.unmark'), onPress: () => set({ attachments: markManual(draft.attachments, null) }) }
+        : { text: t('imn.mark'), onPress: () => set({ attachments: markManual(draft.attachments, att.id) }) },
       { text: t('acc.rename'), onPress: () => { setRenameText(att.name ?? ''); setRenaming(att); } },
       { text: t('sop.replace'), onPress: () => chooseReplace(att) },
       { text: t('common.delete'), destructive: true, onPress: () => removeAttachment(att) },
@@ -413,6 +429,13 @@ export default function ItemDetailSc() {
                 })}
               </Text>
             </View>
+          ) : null}
+          {/* The manual first: the reason a person scanned a label in a crane cabin. */}
+          {savedManual ? (
+            <TouchableOpacity style={[styles.labelBtn, { marginTop: 0, marginBottom: SIZES.md }]} onPress={() => openManual(savedManual)}>
+              <MciIcon name="book-open-variant" size={18} color={COLORS.primary} />
+              <Text style={styles.labelBtnText} numberOfLines={1}>{t('imn.open', { name: savedManual.name ?? t('it.doc') })}</Text>
+            </TouchableOpacity>
           ) : null}
           <View style={styles.titleRow}>
             <CategoryBadge category={meta.key} size={26} />
@@ -663,6 +686,11 @@ export default function ItemDetailSc() {
                         delayLongPress={300}
                         activeOpacity={0.8}
                       >
+                        {a.manual ? (
+                          <View style={styles.manBadge}>
+                            <MciIcon name="book-open-variant" size={12} color="#fff" />
+                          </View>
+                        ) : null}
                         {a.kind === 'photo' ? (
                           <Image source={{ uri: resolveUri(a.uri) }} style={[styles.attThumb, box]} resizeMode="cover" />
                         ) : (
@@ -751,8 +779,15 @@ export default function ItemDetailSc() {
               <Text style={styles.labelBtnText}>{t('lbl.printOne')}</Text>
             </TouchableOpacity>
           ) : null}
+          {/* A label that opens the manual itself — for the cab of a crane, a panel in the engine room. */}
+          {!isNew && savedManual ? (
+            <TouchableOpacity style={styles.labelBtn} onPress={() => nav.navigate('Label', { id: draft.id, manual: 1 })}>
+              <MciIcon name="book-open-variant" size={18} color={COLORS.primary} />
+              <Text style={styles.labelBtnText}>{t('imn.label')}</Text>
+            </TouchableOpacity>
+          ) : null}
           {/* The same id on a chip: a tap opens the item and counts as the scan (types/nfc.ts). */}
-          {!isNew ? <NfcTagRow kind="item" refId={draft.id} name={[draft.no, typeWithSize(draft) || (meta ? catLabel(meta) : '')].filter(Boolean).join(' · ')} /> : null}
+          {!isNew ? <NfcTagRow kind="item" refId={draft.id} hasManual={!!savedManual} name={[draft.no, typeWithSize(draft) || (meta ? catLabel(meta) : '')].filter(Boolean).join(' · ')} /> : null}
 
           {!isNew ? (
             <TouchableOpacity style={styles.moveBtn} onPress={onDuplicate}>
@@ -1423,6 +1458,7 @@ const makeStyles = (COLORS: Palette) => StyleSheet.create({
     borderColor: COLORS.primary,
   },
   labelBtnText: { color: COLORS.primary, fontWeight: '700', fontSize: SIZES.body },
+  manBadge: { position: 'absolute', top: 4, left: 4, zIndex: 2, backgroundColor: COLORS.primary, borderRadius: 10, padding: 3 },
   deleteBtn: {
     marginTop: SIZES.lg,
     paddingVertical: SIZES.md,

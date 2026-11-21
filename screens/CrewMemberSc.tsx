@@ -44,6 +44,7 @@ import { moduleOn } from '../constants/modules';
 import { apStage, appraisalDue, sortAppraisals } from '../services/appraisals';
 import { t, tk, useT } from '../utils/i18n';
 import { NfcTagRow } from '../components/NfcTagRow';
+import { MyDuties } from '../components/MyDuties';
 
 export default function CrewMemberSc() {
   useT();
@@ -216,6 +217,8 @@ export default function CrewMemberSc() {
           {F({ label: t('crew.fullName'), value: m.name, onChange: (v) => setMember({ name: v }), placeholder: t('crew.asPassport') })}
           {F({ label: t('crew.rank'), value: m.rank, onChange: (v) => setMember({ rank: v }), placeholder: t('crew.rankPh') })}
           {F({ label: t('pax.cabin'), value: m.cabin, onChange: (v) => setMember({ cabin: v }), placeholder: t('crew.cabinPh') })}
+
+          {!isNew ? <MyDuties id={m.id} name={m.name} /> : null}
 
           <View style={styles.card}>
             {!isNew && moduleOn('nfc') ? <NfcTagRow kind="person" refId={m.id} name={m.name} /> : null}

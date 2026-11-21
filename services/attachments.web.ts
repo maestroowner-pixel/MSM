@@ -87,6 +87,11 @@ export async function pickDocument(): Promise<PickedFile | null> {
  * (attachments.ts). A browser reads a URL or a data: URI as it is, so this is a
  * pass-through — present so the shared callers (the ZIP export) resolve here too.
  */
+/** A browser keeps no files: a manual opens from its link. */
+export async function keepManuals(_list: unknown[]): Promise<number> {
+  return 0;
+}
+
 export async function ensureLocalFile(uri: string, name?: string): Promise<{ uri: string; name: string }> {
   return { uri, name: name ?? 'file' };
 }

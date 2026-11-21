@@ -47,8 +47,8 @@ import { TsplLabelSpec } from './tspl';
 // ---- payload ---------------------------------------------------------------
 
 // The item payload lives in crewQr.ts (no imports, so the NFC register can use it too).
-import { itemQrPayload, parseItemQr } from './crewQr';
-export { QR_SCHEME, itemQrPayload, parseItemQr } from './crewQr';
+import { itemQrPayload, parseItemQr, parseManualQr } from './crewQr';
+export { QR_SCHEME, itemQrPayload, parseItemQr, manualQrPayload, parseManualQr } from './crewQr';
 export { CREW_QR_SCHEME, crewQrPayload, parseCrewQr } from './crewQr';
 
 /**
@@ -70,7 +70,8 @@ export type DeepLink =
   | { type: 'flagged' }
   | { type: 'item'; id: string }
   | { type: 'group'; id: string }
-  | { type: 'order'; id: string };
+  | { type: 'order'; id: string }
+  | { type: 'manual'; id: string };
 
 export function parseDeepLink(url: string): DeepLink | null {
   const s = url.trim();
@@ -79,6 +80,8 @@ export function parseDeepLink(url: string): DeepLink | null {
   if (lower === 'msm://flagged' || lower === 'msm://flagged/') return { type: 'flagged' };
   const group = parseGroupQr(s);
   if (group) return { type: 'group', id: group };
+  const manual = parseManualQr(s);
+  if (manual) return { type: 'manual', id: manual };
   const order = /^msm:\/\/order\//i.test(s) ? parseOrderQr(s) : null;
   if (order) return { type: 'order', id: order };
   const id = parseItemQr(s);
@@ -519,7 +522,7 @@ export function itemToTsplSpec(
   return {
     widthMm: stock.widthMm,
     heightMm: stock.heightMm,
-    qrPayload: itemQrPayload(item.id),
+    qrPayload: text?.qr ?? itemQrPayload(item.id),
     name: printedTitle(item, text),
     lines,
     qrMm: style.qrMm,

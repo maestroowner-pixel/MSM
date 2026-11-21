@@ -54,6 +54,7 @@ import {
   defaultLabelStyle,
   humanId,
   itemQrPayload,
+  manualQrPayload,
   itemToTsplSpec,
   labelLines,
   labelTitle,
@@ -117,7 +118,7 @@ function LabelPreview({
   const pt = (val: number) => val * PT_MM * scale;
   const align = v ? 'center' : 'left';
 
-  const payload = itemQrPayload(item.id);
+  const payload = text?.qr ?? itemQrPayload(item.id);
   const qrPx = mm(style.qrMm);
   const { strong, weak } = labelLines(item);
   const note = text?.note?.trim();
@@ -221,6 +222,10 @@ function Stepper({
   );
 }
 
+
+/** Printed on a manual label, in English like every label. */
+const MANUAL_NOTE = 'MANUAL - scan to open';
+
 export default function LabelSc() {
   useT();
   const COLORS = useTheme();
@@ -304,6 +309,14 @@ export default function LabelSc() {
     [ids, flat]
   );
 
+  // A manual label (services/manuals): the item's code is msm://manual/<id>, and the label says so.
+  // Never stored in the remembered texts — the item's ordinary label must keep its own code.
+  const manualLabel = !!route.params?.manual;
+  const texts: Record<string, LabelText> = useMemo(
+    () => (manualLabel ? Object.fromEntries(items.map((it) => [it.id, { ...labelText[it.id], qr: manualQrPayload(it.id), note: MANUAL_NOTE }])) : labelText),
+    [manualLabel, items, labelText]
+  );
+
   if (items.length === 0) {
     return (
       <Screen>
@@ -332,9 +345,9 @@ export default function LabelSc() {
   const run = async (mode: 'print' | 'pdf' | 'png') => {
     setBusy(mode);
     try {
-      if (mode === 'print') await printLabels(items, size, pageMode, overrides, labelText, custom);
-      else if (mode === 'png') await saveLabelsPngFile(items, size, overrides, labelText, custom);
-      else await saveLabelsPdf(items, size, pageMode, overrides, labelText, custom);
+      if (mode === 'print') await printLabels(items, size, pageMode, overrides, texts, custom);
+      else if (mode === 'png') await saveLabelsPngFile(items, size, overrides, texts, custom);
+      else await saveLabelsPdf(items, size, pageMode, overrides, texts, custom);
     } catch (e: any) {
       // A cancelled print dialog is not a failure; anything else the user needs to
       // know about, because a silent no-op looks exactly like a printed label.
@@ -348,7 +361,7 @@ export default function LabelSc() {
   const sendToPrinter = async (printer: SavedPrinter) => {
     setBusy('bt');
     try {
-      const tspl = labelsToTspl(items.map((it) => itemToTsplSpec(it, size, labelText[it.id], overrides, custom)));
+      const tspl = labelsToTspl(items.map((it) => itemToTsplSpec(it, size, texts[it.id], overrides, custom)));
       await printTspl(printer.id, tspl);
       Alert.alert(
         t('print.sent'),
@@ -473,10 +486,10 @@ export default function LabelSc() {
       <Card>
         <Label>{t('lbl.preview')}</Label>
         <View style={styles.previewWrap}>
-          <LabelPreview item={items[0]} size={size} custom={custom} width={previewW} style={style} text={labelText[items[0].id]} />
+          <LabelPreview item={items[0]} size={size} custom={custom} width={previewW} style={style} text={texts[items[0].id]} />
         </View>
         <Text style={styles.note}>
-          {t('lbl.qrNote', { id: itemQrPayload(items[0].id) })}
+          {t('lbl.qrNote', { id: texts[items[0].id]?.qr ?? itemQrPayload(items[0].id) })}
         </Text>
       </Card>
 

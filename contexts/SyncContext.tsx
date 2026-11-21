@@ -37,6 +37,8 @@ import { keepLocalPhotos } from '../services/inlinePhotos';
 import NetInfo from '@react-native-community/netinfo';
 
 import * as photoQueue from '../services/photoQueue';
+import { keepManuals } from '../services/attachments';
+import { remoteManuals } from '../services/manuals';
 import { flushAiQueue } from '../services/aiQueue';
 import * as enrolment from '../services/enrolment';
 import * as trial from '../services/trial';
@@ -707,6 +709,23 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
     const sub = AppState.addEventListener('change', onChange);
     return () => sub.remove();
   }, [schedulePush, prefs.photoUpload]);
+
+  // Every item's manual kept on the phone (services/manuals): a crane cabin or an engine room has no
+  // connection. Same rule as the photos — only on a connection the vessel is willing to spend.
+  // Shortly after the register changes, and on every return to the foreground.
+  useEffect(() => {
+    const keep = () => {
+      const list = remoteManuals(flat);
+      if (!list.length) return;
+      void photoQueue.allowed(prefs.photoUpload ?? 'wifi').then((no) => (no ? 0 : keepManuals(list))).catch(() => {});
+    };
+    const timer = setTimeout(keep, 5000);
+    const sub = AppState.addEventListener('change', (s) => { if (s === 'active') keep(); });
+    return () => {
+      clearTimeout(timer);
+      sub.remove();
+    };
+  }, [flat, prefs.photoUpload]);
 
   // AI operations waiting for a connection (services/aiQueue.ts): when one comes back, or the sync does.
   useEffect(() => {

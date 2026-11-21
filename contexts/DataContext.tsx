@@ -61,6 +61,7 @@ import { GaPin, GaSheet } from '../types/gaPlan';
 import { SignCheck, SignPlace } from '../types/imoSigns';
 import { NfcTag } from '../types/nfc';
 import { Muster, MusterMark, MusterStation } from '../types/muster';
+import { StationBill } from '../types/stationBill';
 import { WireEntry } from '../types/wireLog';
 import { CraneEntry, CraneTest } from '../types/craneLog';
 import { Supplier } from '../types/suppliers';
@@ -308,6 +309,8 @@ interface DataContextType {
   musterStations: MusterStation[];
   musters: Muster[];
   musterMarks: MusterMark[];
+  /** The muster list's revisions (types/stationBill.ts). */
+  stationBills: StationBill[];
   /** Rope and wire log (types/wireLog.ts). */
   wireLog: WireEntry[];
   /** Crane operator's log (types/craneLog.ts). */
@@ -536,6 +539,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [gaPins, setGaPins] = useState<GaPin[]>([]);
   const [nfcTags, setNfcTags] = useState<NfcTag[]>([]);
   const [musterStations, setMusterStations] = useState<MusterStation[]>([]);
+  const [stationBills, setStationBills] = useState<StationBill[]>([]);
   const [musters, setMusters] = useState<Muster[]>([]);
   const [musterMarks, setMusterMarks] = useState<MusterMark[]>([]);
   const [wireLog, setWireLog] = useState<WireEntry[]>([]);
@@ -698,6 +702,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _mst1 = await storage.loadList<MusterStation>(storage.MUSTER_STATIONS_KEY);
     const _mus1 = await storage.loadList<Muster>(storage.MUSTERS_KEY);
     const _mmk1 = await storage.loadList<MusterMark>(storage.MUSTER_MARKS_KEY);
+    const _sb1 = await storage.loadList<StationBill>(storage.STATION_BILLS_KEY);
     const _wire1 = await storage.loadList<WireEntry>(storage.WIRE_LOG_KEY);
     const _crane1 = await storage.loadList<CraneEntry>(storage.CRANE_LOG_KEY);
     const _ctest1 = await storage.loadList<CraneTest>(storage.CRANE_TESTS_KEY);
@@ -833,6 +838,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setMusterStations(_mst1);
     setMusters(_mus1);
     setMusterMarks(_mmk1);
+    setStationBills(_sb1);
     setWireLog(_wire1);
     setCraneLog(_crane1);
     setCraneTests(_ctest1);
@@ -1126,6 +1132,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const _mst2 = await storage.loadList<MusterStation>(storage.MUSTER_STATIONS_KEY);
     const _mus2 = await storage.loadList<Muster>(storage.MUSTERS_KEY);
     const _mmk2 = await storage.loadList<MusterMark>(storage.MUSTER_MARKS_KEY);
+    const _sb2 = await storage.loadList<StationBill>(storage.STATION_BILLS_KEY);
     const _wire2 = await storage.loadList<WireEntry>(storage.WIRE_LOG_KEY);
     const _crane2 = await storage.loadList<CraneEntry>(storage.CRANE_LOG_KEY);
     const _ctest2 = await storage.loadList<CraneTest>(storage.CRANE_TESTS_KEY);
@@ -1251,6 +1258,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setMusterStations(_mst2);
     setMusters(_mus2);
     setMusterMarks(_mmk2);
+    setStationBills(_sb2);
     setWireLog(_wire2);
     setCraneLog(_crane2);
     setCraneTests(_ctest2);
@@ -1651,6 +1659,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         musterStations,
         musters,
         musterMarks,
+        stationBills,
         wireLog,
         craneLog,
         craneTests,

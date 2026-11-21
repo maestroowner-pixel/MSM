@@ -182,6 +182,9 @@ export const NFC_TAGS_KEY = `${PREFIX}nfc_tags`;
 export const MUSTER_STATIONS_KEY = `${PREFIX}muster_stations`;
 export const MUSTERS_KEY = `${PREFIX}musters`;
 export const MUSTER_MARKS_KEY = `${PREFIX}muster_marks`;
+/** The muster list (types/stationBill.ts): revisions issued, append-only; and the Master's draft, this device only. */
+export const STATION_BILLS_KEY = `${PREFIX}station_bills`;
+export const STATION_BILL_DRAFT_KEY = `${PREFIX}station_bill_draft`;
 /** Rope and wire log (types/wireLog.ts), append-only. */
 export const WIRE_LOG_KEY = `${PREFIX}wire_log`;
 /** Crane operator's log (types/craneLog.ts), append-only. */
@@ -993,6 +996,8 @@ export async function resetAllData(): Promise<void> {
     MUSTER_STATIONS_KEY,
     MUSTERS_KEY,
     MUSTER_MARKS_KEY,
+    STATION_BILLS_KEY,
+    STATION_BILL_DRAFT_KEY,
     WIRE_LOG_KEY,
     CRANE_LOG_KEY,
     CRANE_TESTS_KEY,

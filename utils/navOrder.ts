@@ -47,7 +47,7 @@ export const MENU_GROUPS: MenuGroup[] = [
   group('home', null, ['Dashboard', 'Chat']),
   group('logs', 'menu.group.logs', ['DeckLog', 'WatchLog', 'Gmdss'], 'notebook-edit-outline'),
   group('equipment', 'menu.group.equipment', ['Equipment', 'ImoSigns', 'Rounds', 'Maintenance', 'OilAnalysis', 'Yard', 'GaPlan', 'Spares', 'Stores', 'Orders', 'Finance'], 'wrench-outline'),
-  group('safety', 'menu.group.safety', ['Drills', 'Muster', 'Safety'], 'lifebuoy'),
+  group('safety', 'menu.group.safety', ['Drills', 'Muster', 'StationBill', 'Safety'], 'lifebuoy'),
   // The ship's hospital on its own, under Safety (17 Oct 2026: "out of Crew, its own section").
   group('medical', 'menu.group.medical', ['Hospital'], 'medical-bag'),
   group('security', 'menu.group.security', ['Security'], 'shield-lock-outline'),
@@ -214,4 +214,4 @@ export const MENU_LABEL: Record<string, string> = new Proxy({} as Record<string,
 });
 
 /** Every entry with a name in the menu (keys `menu.<route>` in constants/i18n/en.ts). */
-export const MENU_ROUTES: string[] = ["Chat", "DeckLog", "WatchLog", "Gmdss", "Equipment", "ImoSigns", "Certificates", "Documents", "Maintenance", "OilAnalysis", "Yard", "GaPlan", "Muster", "Spares", "HoursOfRest", "Crew", "CrewMatrix", "Permits", "Sopep", "Security", "Surveys", "Letters", "OrderBook", "Readiness", "Dp", "Watch", "Familiar", "Safety", "Drills", "Hospital", "Passengers", "Stores", "Orders", "Finance", "Rounds", "Fuel", "Garbage", "OilRecord", "Sewage", "Ballast", "FuelChangeover", "Ods", "Reports", "Settings"];
+export const MENU_ROUTES: string[] = ["Chat", "DeckLog", "WatchLog", "Gmdss", "Equipment", "ImoSigns", "Certificates", "Documents", "Maintenance", "OilAnalysis", "Yard", "GaPlan", "Muster", "StationBill", "Spares", "HoursOfRest", "Crew", "CrewMatrix", "Permits", "Sopep", "Security", "Surveys", "Letters", "OrderBook", "Readiness", "Dp", "Watch", "Familiar", "Safety", "Drills", "Hospital", "Passengers", "Stores", "Orders", "Finance", "Rounds", "Fuel", "Garbage", "OilRecord", "Sewage", "Ballast", "FuelChangeover", "Ods", "Reports", "Settings"];

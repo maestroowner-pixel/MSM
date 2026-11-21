@@ -23,12 +23,13 @@ import { moduleOn } from '../constants/modules';
 import { roleAtLeast, personName } from '../types/role';
 import { NfcTagKind } from '../types/nfc';
 import { activeTag, issueTag, payloadFor, revokeTag, uidTail } from '../services/nfcTags';
+import { manualQrPayload } from '../services/crewQr';
 import { cancelRead, nfcReady, readTag, writeTag } from '../services/nfcReader';
 import * as storage from '../services/storage';
 import { uiDate } from '../utils/dates';
 import { t, useT } from '../utils/i18n';
 
-export function NfcTagRow({ kind, refId, name }: { kind: NfcTagKind; refId: string; name: string }) {
+export function NfcTagRow({ kind, refId, name, hasManual }: { kind: NfcTagKind; refId: string; name: string; hasManual?: boolean }) {
   useT();
   const COLORS = useTheme();
   const styles = makeStyles(COLORS);
@@ -54,11 +55,11 @@ export function NfcTagRow({ kind, refId, name }: { kind: NfcTagKind; refId: stri
     return saveRows(storage.NFC_TAGS_KEY, issueTag(nfcTags, uid, kind, refId, name, by, Date.now()));
   };
 
-  const write = async () => {
+  const write = async (manual = false) => {
     const prompt = t('nfc.holdToWrite', { name });
     setBusy(prompt);
     try {
-      await enter(await writeTag(payloadFor(kind, refId), prompt));
+      await enter(await writeTag(manual ? manualQrPayload(refId) : payloadFor(kind, refId), prompt));
     } catch (e: any) {
       if (!/cancel/i.test(`${e?.constructor?.name ?? ''} ${e?.message ?? e}`)) Alert.alert(what, kind === 'person' ? `${t('nfc.writeFailed')}\n\n${t('nfc.writeFailedWatch')}` : t('nfc.writeFailed'));
     } finally {
@@ -119,6 +120,12 @@ export function NfcTagRow({ kind, refId, name }: { kind: NfcTagKind; refId: stri
             <TouchableOpacity style={styles.btn} onPress={() => void write()}>
               <Text style={styles.btnText}>{t('nfc.write')}</Text>
             </TouchableOpacity>
+            {/* The same item's tag, written with the manual's words: a tap opens the manual (services/manuals). */}
+            {kind === 'item' && hasManual ? (
+              <TouchableOpacity style={styles.btn} onPress={() => void write(true)}>
+                <Text style={styles.btnText}>{t('imn.writeTag')}</Text>
+              </TouchableOpacity>
+            ) : null}
             {kind === 'person' ? (
               <TouchableOpacity style={styles.btn} onPress={() => void register()}>
                 <Text style={styles.btnText}>{t('nfc.register')}</Text>

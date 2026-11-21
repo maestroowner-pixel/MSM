@@ -576,6 +576,18 @@ app mirrors. Bundle id `com.kukalab.msm`.
   on order (drafts count — sparesNeed.onOrder). Fit from stock: `spareTakes` (new first, never poor) → `issued` moves with the batch's wear +
   a fitted SignCheck (`fittedLooks`), one signature. Draft order: one deck PO, lines `signOrderLines` (English; `storeItemId` → received into the
   signs store). Synced, in .msm, erased with the device. `npm run check:imosigns`; rules-test.mjs covers it. `npm run deploy:rules` before the flag.
+- **Muster list / station bill** (21 Nov 2026 — flag `stationBill`, off; needs `crewCerts`): `types/stationBill.ts`, pure `services/stationBill.ts`
+  + rows `services/stationBillRows.ts` (pure), paper `services/stationBillReport.ts` (PMS-history PDF), screen `StationBillSc` (route `StationBill`
+  `muster-list`; menu Safety after Muster, `menuExtras`), `components/MyDuties.tsx` (MyDocsSc — own; CrewMemberSc — theirs). **By POSITION**: a row is
+  a numbered billet (`BillRow.id` permanent, `no`, `position`) with the person assigned (`crewId` + `name` snapshot) and `deputyNo`; duties per
+  `DutyKey` fire/abandon/mob/sopep/sec1/sec2/sec3 (**permanent ids**) = station, duty, `zoneId` (areas of responsibility `BillZone`: space/boat/station/other).
+  `station_bills` APPEND-ONLY, one document per revision `sb_r<rev>` (rules: Master creates, rows ≥ 1, everyone + shore read); the list being edited is a
+  device-local draft (`msm:station_bill_draft`, never synced, in the reset list). `issueBill` sorts by no., drops empty duties and dangling areas, writes
+  names; `billAt` = revision in force on a date. `standardBill` (11 posts for a yacht, signals, areas, `sb_std_<no>`) is a start; `fillFromCrew` by
+  rank (exact, then prefix: Deckhand → Deckhand 1, 2). `billGaps`: aboard not on it / on it not aboard / posts empty / one person twice → amber at the
+  top of the list (officers) and Board `sb:gaps` (Master). Paper: `alarmSheet` per alarm (security a table per ISPS level) and `billSheets` (roster,
+  signals, areas, every alarm, Master's signature/stamp line). Confirmations are two taps (web has no multi-button Alert). `npm run check:stationbill`;
+  rules-test.mjs covers it. `npm run deploy:rules` before the flag.
 - **Rope and wire log** (7 Nov 2026 — flag `wires`, off; needs `lifting`; plan item 67, UniSea's "Wire Manager"): `types/wireLog.ts`,
   pure `services/wireLog.ts` + rows `services/wireRows.ts` (pure, so check:wirelog can reach them), papers `services/wireReport.ts`
   (PMS-history PDF + Excel Ropes/Log), `components/WireLogCard.tsx` (on ItemDetail), screens `WireEntrySc` (route `WireEntry`

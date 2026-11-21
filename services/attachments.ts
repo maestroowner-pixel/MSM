@@ -10,6 +10,7 @@ import * as Sharing from 'expo-sharing';
 import { Alert } from 'react-native';
 import { uid } from '../utils/id';
 import { downscale } from './images';
+import { Attachment } from '../types/equipment';
 
 // All item attachments AND certificate files live here. Exported for the
 // backup service, which bundles/restores these binaries.
@@ -181,14 +182,22 @@ function extFor(dataUri: string): string {
  * airtime. Stored objects are named by attachment id with no extension, so the
  * name comes from the attachment, else from the response's Content-Type.
  */
-export async function ensureLocalFile(uri: string, name?: string): Promise<{ uri: string; name: string }> {
+/**
+ * `keep` — into the documents folder (`kept/`), which the system does not clear the
+ * way it may clear the cache: an item's manual has to open with no connection
+ * (services/manuals). A kept copy is found first by every later open.
+ */
+export async function ensureLocalFile(uri: string, name?: string, keep = false): Promise<{ uri: string; name: string }> {
   const resolved = resolveUri(uri) ?? uri;
   if (!/^https?:/i.test(resolved)) return { uri: resolved, name: safeName(name) || resolved.split('/').pop() || 'file' };
-  const dir = `${FileSystem.cacheDirectory}remote/`;
+  const kept = `${FileSystem.documentDirectory}kept/`;
+  const dir = keep ? kept : `${FileSystem.cacheDirectory}remote/`;
   await FileSystem.makeDirectoryAsync(dir, { intermediates: true }).catch(() => {});
   const key = urlKey(resolved);
-  const cached = (await FileSystem.readDirectoryAsync(dir).catch(() => [] as string[])).find((f) => f.startsWith(`${key}_`));
-  if (cached) return { uri: `${dir}${cached}`, name: cached.slice(key.length + 1) };
+  for (const d of keep ? [kept] : [kept, dir]) {
+    const cached = (await FileSystem.readDirectoryAsync(d).catch(() => [] as string[])).find((f) => f.startsWith(`${key}_`));
+    if (cached) return { uri: `${d}${cached}`, name: cached.slice(key.length + 1) };
+  }
 
   let fileName = safeName(name) || remoteFileName(resolved);
   const tmp = `${dir}${key}.download`;
@@ -209,6 +218,20 @@ export async function ensureLocalFile(uri: string, name?: string): Promise<{ uri
   const target = `${dir}${key}_${fileName}`;
   await FileSystem.moveAsync({ from: tmp, to: target });
   return { uri: target, name: fileName };
+}
+
+/** A copy of each manual kept on the device; the ones that fail are tried again next time. */
+export async function keepManuals(list: Attachment[]): Promise<number> {
+  let n = 0;
+  for (const a of list) {
+    try {
+      await ensureLocalFile(a.uri, a.name, true);
+      n++;
+    } catch {
+      /* no connection, or the file is gone: next time */
+    }
+  }
+  return n;
 }
 
 /** `name` — the attachment's own name, when known; it supplies the extension a Storage URL lacks. */
@@ -341,6 +364,8 @@ export async function clearAttachmentsDir(): Promise<void> {
   try {
     const info = await FileSystem.getInfoAsync(DIR);
     if (info.exists) await FileSystem.deleteAsync(DIR, { idempotent: true });
+    // The vessel's manuals kept for offline go with the rest of its files.
+    await FileSystem.deleteAsync(`${FileSystem.documentDirectory}kept/`, { idempotent: true });
   } catch {
     /* ignore */
   }
